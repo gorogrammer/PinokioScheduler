@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PINOKIO_SCHEDULER", "PINOKIO_SCHEDULER\PINOKIO_SCHEDULER.csproj", "{48A7655B-074B-4986-9AB7-4C9F96B91357}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48A7655B-074B-4986-9AB7-4C9F96B91357}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48A7655B-074B-4986-9AB7-4C9F96B91357}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48A7655B-074B-4986-9AB7-4C9F96B91357}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48A7655B-074B-4986-9AB7-4C9F96B91357}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {730CFC33-5A1C-4831-99D5-AE44A1B5BB9A}
+	EndGlobalSection
+EndGlobal

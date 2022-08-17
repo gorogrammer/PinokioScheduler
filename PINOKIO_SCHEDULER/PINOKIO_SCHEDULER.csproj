@@ -1,0 +1,340 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{48A7655B-074B-4986-9AB7-4C9F96B91357}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>PINOKIO_SCHEDULER</RootNamespace>
+    <AssemblyName>PINOKIO_SCHEDULER</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <PublishUrl>게시\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Carlo.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Accessibility" />
+    <Reference Include="devDept.Eyeshot.Control.Win.v12, Version=12.0.456.0, Culture=neutral, PublicKeyToken=5385d83d2fb4d7d9, processorArchitecture=MSIL" />
+    <Reference Include="devDept.Geometry.v12, Version=12.0.456.0, Culture=neutral, PublicKeyToken=9440825e8b4733bc" />
+    <Reference Include="devDept.Graphics.Shaders.v12, Version=12.0.456.0, Culture=neutral, PublicKeyToken=54ce5f5f803e4b42" />
+    <Reference Include="devDept.Graphics.Win.v12, Version=12.0.456.0, Culture=neutral, PublicKeyToken=f3cd437f0d8061b5" />
+    <Reference Include="DevExpress.Charts.v20.1.Core, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Data.Desktop.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Data.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Printing.v20.1.Core, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Sparkline.v19.2.Core, Version=19.2.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Sparkline.v20.1.Core, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Utils.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Utils.v20.1.UI, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraBars.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraCharts.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraCharts.v20.1.UI, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraCharts.v20.1.Wizard, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraEditors.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraGrid.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraLayout.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraPrinting.v20.1, Version=20.1.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Office.Interop.Excel.15.0.4795.1000\lib\net20\Microsoft.Office.Interop.Excel.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Runtime.Serialization.Formatters.Soap" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AnimatedBlockRef.cs" />
+    <Compile Include="GeneralFunctions\Definitions.cs" />
+    <Compile Include="GeneralFunctions\GeneralFunc.cs" />
+    <Compile Include="GeneralFunctions\PySocket.cs" />
+    <Compile Include="JOB\Problem.cs" />
+    <Compile Include="Log\KPILog.cs" />
+    <Compile Include="Log\ScheduleLog.cs" />
+    <Compile Include="MainForm_Ribbon.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm_Ribbon.Designer.cs">
+      <DependentUpon>MainForm_Ribbon.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Nodes\JobBoxNode.cs" />
+    <Compile Include="Nodes\MachineNode.cs" />
+    <Compile Include="MachineShape.cs" />
+    <Compile Include="Definition.cs" />
+    <Compile Include="Model\GraphModel.cs" />
+    <Compile Include="Model\JobModel.cs" />
+    <Compile Include="Model\SchdulingRules.cs" />
+    <Compile Include="Model\ScheduleModel.cs" />
+    <Compile Include="Model\StatesModel.cs" />
+    <Compile Include="Nodes\Rotating.cs" />
+    <Compile Include="Nodes\TranslatingAlongZ.cs" />
+    <Compile Include="ProcessShape.cs" />
+    <Compile Include="Createbolck.cs" />
+    <Compile Include="MainFrom.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainFrom.Designer.cs">
+      <DependentUpon>MainFrom.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\aboutform.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\aboutform.Designer.cs">
+      <DependentUpon>aboutform.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\CurrentInfoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\CurrentInfoForm.Designer.cs">
+      <DependentUpon>CurrentInfoForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SubView\ErrorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\ErrorForm.Designer.cs">
+      <DependentUpon>ErrorForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\FormLaunchScreen.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\FormLaunchScreen.Designer.cs">
+      <DependentUpon>FormLaunchScreen.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\FormLoading.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\FormLoading.Designer.cs">
+      <DependentUpon>FormLoading.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\MakeJobListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\MakeJobListForm.Designer.cs">
+      <DependentUpon>MakeJobListForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\ProblemSettingForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\ProblemSettingForm.Designer.cs">
+      <DependentUpon>ProblemSettingForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\ReportForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\ReportForm.Designer.cs">
+      <DependentUpon>ReportForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\SelectChartForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\SelectChartForm.Designer.cs">
+      <DependentUpon>SelectChartForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\SelectListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\SelectListForm.Designer.cs">
+      <DependentUpon>SelectListForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SubView\WaitForm1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SubView\WaitForm1.Designer.cs">
+      <DependentUpon>WaitForm1.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="MainForm_Ribbon.resx">
+      <DependentUpon>MainForm_Ribbon.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainFrom.resx">
+      <DependentUpon>MainFrom.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\aboutform.resx">
+      <DependentUpon>aboutform.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\CurrentInfoForm.resx">
+      <DependentUpon>CurrentInfoForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\licenses.licx" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="SubView\ErrorForm.resx">
+      <DependentUpon>ErrorForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\FormLaunchScreen.resx">
+      <DependentUpon>FormLaunchScreen.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\FormLoading.resx">
+      <DependentUpon>FormLoading.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\MakeJobListForm.resx">
+      <DependentUpon>MakeJobListForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\ProblemSettingForm.resx">
+      <DependentUpon>ProblemSettingForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\ReportForm.resx">
+      <DependentUpon>ReportForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\SelectChartForm.resx">
+      <DependentUpon>SelectChartForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\SelectListForm.resx">
+      <DependentUpon>SelectListForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SubView\WaitForm1.resx">
+      <DependentUpon>WaitForm1.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="bin\Debug\chair.mtl" />
+    <None Include="bin\Debug\chair.obj" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\metal3.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\blackrubber.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\keyboard.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\display.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\glass1.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\white_metal.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Maple.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Warning_1.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\metal2.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Chrome.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Carlo.ico" />
+    <None Include="Resources\Splash_Inu_blue.png" />
+    <None Include="Resources\blue_splash.png" />
+    <None Include="Resources\alert__1_-removebg-preview.png" />
+    <None Include="Resources\5a38115bdbbef2.1560058015136238999001.png" />
+    <None Include="Resources\alert %281%29.png" />
+    <None Include="Resources\exclamation-mark.png" />
+    <None Include="Resources\alert.png" />
+    <None Include="Resources\INU_Splash.png" />
+    <None Include="Resources\INU 워드마크.png" />
+    <None Include="Resources\카를로_로고_컬러.png" />
+    <None Include="Properties\다운로드 %285%29.png" />
+    <None Include="Properties\다운로드.png" />
+    <None Include="Properties\다운로드 %284%29.png" />
+    <None Include="Properties\다운로드 %283%29.png" />
+    <None Include="Properties\다운로드 %282%29.png" />
+    <None Include="Properties\다운로드 %281%29.png" />
+    <None Include="Resources\Image1.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2%28x86 및 x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>if exist "$(TargetPath).locked" del "$(TargetPath).locked"
+if exist "$(TargetPath)" if not exist "$(TargetPath).locked" move "$(TargetPath)" "$(TargetPath).locked"</PreBuildEvent>
+  </PropertyGroup>
+</Project>
