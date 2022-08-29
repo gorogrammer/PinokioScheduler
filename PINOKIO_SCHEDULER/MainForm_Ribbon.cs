@@ -1591,7 +1591,9 @@ namespace PINOKIO_SCHEDULER
 
         public void SetTimeLineAnimation()
         {
-
+            if(TimeLineAnimationThread == null){
+                return;
+            }
             if (_isTimelineAnimating)
             {
                 //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.Enabled = true));
@@ -3176,7 +3178,14 @@ namespace PINOKIO_SCHEDULER
                     MessageBox.Show("이전 작성된 스케줄을 Clear 한 뒤 실행 가능합니다");
                     return;
                 }
-                else if (_DT_Job.Rows.Count == 0)
+                else if (_DT_Job !=null && _DT_Job.Rows.Count == 0)
+                {
+                    MessageBox.Show("생성된 Job List가 없습니다.");
+                    return;
+                    
+                   
+                }
+                else if(_DT_Job == null) 
                 {
                     MessageBox.Show("생성된 Job List가 없습니다.");
                     return;
@@ -4552,9 +4561,12 @@ namespace PINOKIO_SCHEDULER
         {
             if (MessageBox.Show("Job List를 삭제합니다.", "Clear", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                this.gridView1.Columns.Clear();
-                Grid_WF_JOB.DataSource = null;
-                _DT_Job.Clear();
+                if (_DT_Job != null)
+                {
+                    this.gridView1.Columns.Clear();
+                    Grid_WF_JOB.DataSource = null;
+                    _DT_Job.Clear();
+                }
             }
         }
 
