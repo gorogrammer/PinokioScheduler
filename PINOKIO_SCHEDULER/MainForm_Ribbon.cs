@@ -54,6 +54,7 @@ namespace PINOKIO_SCHEDULER
         public bool reportCell = false;
         bool selectcell = false;
         bool mouseright = false;
+        string ScheduleType = string.Empty;
         Color originColor;
         List<string> ErrorSetupTime = new List<string>();
         List<string> ErrorArr = new List<string>();
@@ -369,10 +370,12 @@ namespace PINOKIO_SCHEDULER
             Application.Run(infoForm);
         }
         public void AddSchedule(ScheduleModel model)
-        {
-            _DT_ScheduleList.Rows.Add(model.ID_LOT, model.ID_Machine, model.JobType, model.ProcessingTime, model.StartTime, model.EndTime, model.DueTime, model.Setup, model.Violation);
-        }
+        {   
 
+            _DT_ScheduleList.Rows.Add(model.ID_LOT, model.ID_Machine, model.JobType, model.ProcessingTime, model.StartTime, model.EndTime, model.DueTime, model.Setup, model.Violation);
+
+        }
+        
         public void Add_AssignedSchedule(ScheduleModel model)
         {
             _DT_ScheduleList_Assigned.Rows.Add(model.ID_LOT, model.ID_Machine, model.JobType, model.ProcessingTime, model.StartTime, model.EndTime, model.DueTime, model.Setup, model.Violation);
@@ -459,14 +462,20 @@ namespace PINOKIO_SCHEDULER
         {
             
             _LoadCsvPath = GeneralFunc.OpenFiles();
+            ErrorArr.Clear();
+            ErrorSetupTime.Clear();
+            ErrorProcessing.Clear();
+            Errorjobtype.Clear();
 
+            ErrorSetupOX.Clear();
+            ErrorViolation.Clear();
             if (_LoadCsvPath == string.Empty)
                 return false;
 
             List<string> lstReadCSV = GeneralFunc.ReadCsv(_LoadCsvPath);
             if (lstReadCSV == null)
                 return false;
-
+            
             //리스트로 이루어진 스케쥴 초기 모델
             _lstSchedule = GeneralFunc.GetScheduleModels_Import(lstReadCSV, out _TotalMachineNum, out _TotalWorkingTime, out _DT_ScheduleList);
 
@@ -507,43 +516,48 @@ namespace PINOKIO_SCHEDULER
                     {
                         string JobtypeLotid = sche.JobType + sche.ID_LOT.ToString();
                         double violation = sche.EndTime - sche.DueTime;
-                        if (violation <=0)
-                        {
-                            if(sche.Violation !=0)
-                                ErrorViolation.Add(JobtypeLotid);
-                        }
-                        else
-                        {
-                            if(violation != sche.Violation)
-                                ErrorViolation.Add(JobtypeLotid);
-                        }
-
-                        if (DicMachineJobList.ContainsKey(sche.ID_Machine))
-                        {
-                            int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
-
-                            if (idx == 0)
+                        
+                            if (violation <= 0)
                             {
-                                if (sche.Setup != 0)
-                                    ErrorSetupOX.Add(JobtypeLotid);
-
+                                if (sche.Violation != 0)
+                                    ErrorViolation.Add(JobtypeLotid);
                             }
                             else
                             {
+                                if (violation != sche.Violation)
+                                    ErrorViolation.Add(JobtypeLotid);
+                            }
+                        
 
-                                if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
+                            
+                            if (DicMachineJobList.ContainsKey(sche.ID_Machine))
+                            {
+                                int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
+
+                                if (idx == 0)
                                 {
                                     if (sche.Setup != 0)
                                         ErrorSetupOX.Add(JobtypeLotid);
+
                                 }
-                                else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
+                                else
                                 {
-                                    if (sche.Setup == 0)
-                                        ErrorSetupOX.Add(JobtypeLotid);
-                                    
+
+                                    if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
+                                    {
+                                        if (sche.Setup != 0)
+                                            ErrorSetupOX.Add(JobtypeLotid);
+                                    }
+                                    else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
+                                    {
+                                        if (sche.Setup == 0)
+                                            ErrorSetupOX.Add(JobtypeLotid);
+
+                                    }
                                 }
                             }
-                        }
+                        
+                        
                     }
 
                     if (ErrorArr.Count > 0 || ErrorSetupTime.Count > 0 || ErrorProcessing.Count > 0 || Errorjobtype.Count > 0 || ErrorSetupOX.Count > 0 || ErrorViolation.Count > 0)
@@ -570,7 +584,7 @@ namespace PINOKIO_SCHEDULER
         }
 
       
-        private void CheckScheduleImport(Dictionary<string, Job_Setting_Value> problem, List<ScheduleModel> schedule)
+        private void CheckScheduleImport(Dictionary<string, Job_Setting_Value> problem, List<ScheduleModel> schedule)  
         {
             ErrorArr.Clear();
             ErrorSetupTime.Clear();
@@ -608,47 +622,61 @@ namespace PINOKIO_SCHEDULER
                         }
                         
                     }
-
-                    if (violation <= 0)
-                    {
-                        if (sche.Violation != 0)
-                            ErrorViolation.Add(JobtypeLotid);
-                    }
-                    else
-                    {
-                        if (violation != sche.Violation)
-                            ErrorViolation.Add(JobtypeLotid);
-                    }
-
-                    if (DicMachineJobList.ContainsKey(sche.ID_Machine))
-                    {
-                        int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
-
-                        if (idx == 0)
+                    
+                        if (violation <= 0)
                         {
-                            if (sche.Setup != 0)
-                                ErrorSetupOX.Add(JobtypeLotid);
-
+                             
+                            if (sche.Violation != 0)
+                                ErrorViolation.Add(JobtypeLotid);
                         }
                         else
                         {
-                           
-                            if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
-                            {
-                                if (sche.Setup != 0)
-                                    ErrorSetupOX.Add(JobtypeLotid);
-                            }
-                            else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
-                            {
-                                if (sche.Setup == 0)
-                                    ErrorSetupOX.Add(JobtypeLotid);
-                                else if (sche.SetUpTime != problem[sche.JobType].SetUp_Time)
-                                {
-                                    if (!ErrorSetupTime.Contains(JobtypeLotid))
-                                        ErrorSetupTime.Add(JobtypeLotid);
-                                }
-                            }
+
+                            if (violation != sche.Violation)
+                                ErrorViolation.Add(JobtypeLotid);
                         }
+
+                    if (DicMachineJobList.ContainsKey(sche.ID_Machine))
+                    {
+                       
+                           
+                                int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
+                                if (idx == 0)
+                                {
+                                    if (sche.Setup != 0)
+                                        ErrorSetupOX.Add(JobtypeLotid);
+
+                                }
+                                else
+                                {
+
+                                    if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
+                                    {
+
+                                        if (sche.Setup != 0)
+                                            ErrorSetupOX.Add(JobtypeLotid);
+
+                                    }
+                                    else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
+                                    {
+
+                                        if (sche.Setup == 0 && problem[sche.JobType].SetUp_Time != 0)
+                                            ErrorSetupOX.Add(JobtypeLotid);
+
+                                        else if (sche.SetUpTime != problem[sche.JobType].SetUp_Time)
+                                        {
+
+                                            if (!ErrorSetupTime.Contains(JobtypeLotid))
+                                                ErrorSetupTime.Add(JobtypeLotid);
+
+                                        }
+                                    }
+
+
+                                }
+                            
+                        
+                       
                     }
                 }
                 else
@@ -703,16 +731,19 @@ namespace PINOKIO_SCHEDULER
   
         public void UpdateJobInfoDic(List<ScheduleModel> sl)
         {
+            DicJobInfo.Clear();
             foreach (ScheduleModel sd in sl)
             {
+
                 string keyname = sd.JobType + sd.ID_LOT;
                 if (!DicJobInfo.ContainsKey(keyname))
-                {
+                {                 
                     if (endTime < sd.EndTime)
                         endTime = sd.EndTime;
-
+                    
                     DicJobInfo.Add(keyname, sd);
                 }
+                
             }
            
 
@@ -790,7 +821,7 @@ namespace PINOKIO_SCHEDULER
 
             //그룹박스 초기화
             //GB_JOB.BeginInvoke(new Action(() => GB_JOB.Text = "Job List : " + _TotalJobNum));
-            GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocatred Jobs :  " + _TotalJobNum));
+            GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocated Jobs :  " + _TotalJobNum));
             //GB_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => GB_SCHEDULELIST_ASSIGNED.Text = "Assigned Schedule List : "));
 
             // 잡 DT 생성	
@@ -873,7 +904,7 @@ namespace PINOKIO_SCHEDULER
 
             //그룹박스 초기화
             // GB_JOB.BeginInvoke(new Action(() => GB_JOB.Text = "Job List : " + _TotalJobNum));
-            GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocatred Jobs :  " + _TotalJobNum));
+            GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocated Jobs :  " + _TotalJobNum));
             //GB_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => GB_SCHEDULELIST_ASSIGNED.Text = "Assigned Schedule List : "));
 
             // 잡 DT 생성	
@@ -1066,7 +1097,9 @@ namespace PINOKIO_SCHEDULER
             JobBoxNode jbNode = new JobBoxNode();
             jbNode.ScheduleData = lstmodel[step];
             jbNode.Name = JobName;
+            
             DEF.SETUPTIME = lstmodel[step].SetUpTime;
+            
             DicJobBox.Add(JobName, jbNode);
             if (DicJobCount_IN.ContainsKey(lstmodel[step].JobType))
             {
@@ -1474,9 +1507,11 @@ namespace PINOKIO_SCHEDULER
             {
                 _DT_ScheduleTable.Clear();
                 _DT_ScheduleTable.Columns.Clear();
-                _DT_ScheduleList.Clear();
-                _DT_ScheduleList.Columns.Clear();
-
+                if (_DT_ScheduleList != null)
+                {
+                    _DT_ScheduleList.Clear();
+                    _DT_ScheduleList.Columns.Clear();
+                }
             }
 
             CHART_TARDY.DataSource = null;
@@ -1556,6 +1591,7 @@ namespace PINOKIO_SCHEDULER
 
         public void SetTimeLineAnimation()
         {
+
             if (_isTimelineAnimating)
             {
                 //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.Enabled = true));
@@ -1578,7 +1614,7 @@ namespace PINOKIO_SCHEDULER
                 //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.BackgroundImage = Properties.Resources.다운로드__5_));
 
                 _isTimelineAnimating = true;
-                if(!bt_AimationOnOFF.Checked)
+                if (!bt_AimationOnOFF.Checked)
                 {
                     TimeLineAnimationThread = new Thread(new ParameterizedThreadStart(Delegate_TimeLineAnimation));
 
@@ -1602,7 +1638,7 @@ namespace PINOKIO_SCHEDULER
                             //if (model1.InvokeRequired)
                             //    model1.BeginInvoke(new Action(() => Update3D(lststates, i)));
                             //else
-                                Update3D(lststates, i);
+                            Update3D(lststates, i);
 
 
 
@@ -1616,7 +1652,7 @@ namespace PINOKIO_SCHEDULER
                             //else
                             //    model1.Focus();
 
-                            if(i <=endTime)
+                            if (i <= endTime)
                                 UpdateRealTimeGraph(lststates);
 
                             //Thread.Sleep(_AnimationTic);
@@ -1630,10 +1666,10 @@ namespace PINOKIO_SCHEDULER
                         SplashScreenManager.CloseForm();
                     }
                 }
-           
+            }
 
                 //testtest(Grid_WF_SCHEDULE.Columns.Count);
-            }
+            
         }
 
         public void SetSchedulAnimation()
@@ -3140,18 +3176,21 @@ namespace PINOKIO_SCHEDULER
                     MessageBox.Show("이전 작성된 스케줄을 Clear 한 뒤 실행 가능합니다");
                     return;
                 }
+                else if (_DT_Job.Rows.Count == 0)
+                {
+                    MessageBox.Show("생성된 Job List가 없습니다.");
+                    return;
+                }
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
          
                 int machines = Convert.ToInt32(Problem_Value.Machine_Count);
-                
                 List<string> lstStrSchedules = SchdulingRules.GetSchedule(comboBox1.SelectedIndex, machines, _DT_Job, Problem_Value);
-
+                ScheduleType = comboBox1.SelectedItem.ToString();
                 StartNewDispatching(lstStrSchedules);
                 //gridView2.Columns["Due Date"].UnboundType = DevExpress.Data.UnboundColumnType.Integer;
                 sw.Stop();
-
                 dispatchingTime = sw.ElapsedMilliseconds.ToString() + "ms";
                 List<string> sds = new List<string>();
                 int duetotalTime = 0;
@@ -3173,8 +3212,8 @@ namespace PINOKIO_SCHEDULER
                 //lb_time.Visible = true;
 
                 lb_time.Font = GB_SCHEDULE.Font;
-                lb_time.Text = "Execusion Time : " + dispatchingTime + " Total Due Date Violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
-                GB_SCHEDULE.Text = "Schedule Table  " + "Execusion Time : " + dispatchingTime + " Total Due Date violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total Setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
+                lb_time.Text = "Execution Time : " + dispatchingTime + " Total Due Date Violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
+                GB_SCHEDULE.Text = "Schedule Table  " + "Execution Time : " + dispatchingTime + " Total Due Date violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total Setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
                 Grid_WF_JOB.Refresh();
             }
         }
@@ -3296,7 +3335,7 @@ namespace PINOKIO_SCHEDULER
             //Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.Refresh()));
 
             //  GB_JOB.BeginInvoke(new Action(() => GB_JOB.Text = "Job List : " + _TotalJobNum));
-            //GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocatred Jobs :  " + _TotalJobNum));
+            //GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocated Jobs :  " + _TotalJobNum));
             //GB_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => GB_SCHEDULELIST_ASSIGNED.Text = "Assigned Schedule List : "));
 
             // 잡 DT 생성	
@@ -3355,12 +3394,41 @@ namespace PINOKIO_SCHEDULER
                 SplashScreenManager.CloseForm();
                 //InputSchedule();
                 //gridView2.Columns["Due Date"].UnboundType = DevExpress.Data.UnboundColumnType.Integer;
-           
+                List<string> sds = new List<string>();
+                int duetotalTime = 0;
+                List<int> setuplist = new List<int>();
+                foreach (KeyValuePair<string, ScheduleModel> pair in DicJobInfo)
+                {
+                    if (pair.Value.Violation > 0)
+                    {
+                        sds.Add(pair.Key);
+                        duetotalTime += pair.Value.Violation;
+                    }
+
+                    if (pair.Value.Setup > 0)
+                    {
+                        setuplist.Add(pair.Value.Setup);
+                    }
+
+                }
+                //lb_time.Visible = true;
+
+                lb_time.Font = GB_SCHEDULE.Font;
+                lb_time.Text = "Execution Time : " + dispatchingTime + " Total Due Date Violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
+                GB_SCHEDULE.Text = "Schedule Table  " + "Execution Time : " + dispatchingTime + " Total Due Date violations : (#" + sds.Count.ToString() + "/" + duetotalTime.ToString() + ")" + " Total Setups : (#" + setuplist.Count().ToString() + "/" + setuplist.Sum().ToString() + ")";
+                Grid_WF_JOB.Refresh();
 
             }
             else
             {
                 MessageBox.Show("Import File에 오류가 있습니다.");
+                ClearSchedules();
+                
+               for (int i = 0; i < gridView2.RowCount;)
+               {
+                   gridView2.DeleteRow(i);
+                }
+                gridView2.Columns.Clear();
             }
 
 
@@ -3397,6 +3465,7 @@ namespace PINOKIO_SCHEDULER
 
         private void bbSimPlay_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
+            
             double tic = 0.5;
             _AnimationTic = (int)(tic * 1000);
             if(Animation)
@@ -3418,8 +3487,7 @@ namespace PINOKIO_SCHEDULER
 
         private void bbSimulPause_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-
-
+        
         }
 
         private void bbProblemSetting_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -3472,6 +3540,7 @@ namespace PINOKIO_SCHEDULER
         
                 if (sd.ShowDialog() == DialogResult.OK)
                 {
+                    DicJobList.Clear();
                     Grid_WF_JOB.DataSource = sd.JobListTable;
                     _DT_Job = sd.JobListTable;
 
@@ -3566,10 +3635,12 @@ namespace PINOKIO_SCHEDULER
 
                 if (di.Exists == false)
                     di.Create();
-
-                string problemPath = @"C:\VAMS\Schedule_" + DateTime.Now.Year + DateTime.Now.Month + DateTime.Now.Day + "_" + DateTime.Now.Hour + DateTime.Now.Minute + DateTime.Now.Second + ".csv";
+              
+               
+                string problemPath = @"C:\VAMS\"+ ScheduleType + "_Schedule_" + DateTime.Now.Year + DateTime.Now.Month + DateTime.Now.Day + "_" + DateTime.Now.Hour + DateTime.Now.Minute + DateTime.Now.Second + ".csv";
                 Grid_WF_SCHEDULELIST.ExportToCsv(problemPath);
-            
+             
+               
             }
 
 

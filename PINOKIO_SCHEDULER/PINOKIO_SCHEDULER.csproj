@@ -103,6 +103,7 @@
     <Compile Include="AnimatedBlockRef.cs" />
     <Compile Include="GeneralFunctions\Definitions.cs" />
     <Compile Include="GeneralFunctions\GeneralFunc.cs" />
+    <Compile Include="GeneralFunctions\Maths.cs" />
     <Compile Include="GeneralFunctions\PySocket.cs" />
     <Compile Include="JOB\Problem.cs" />
     <Compile Include="Log\KPILog.cs" />

@@ -50,14 +50,17 @@ namespace PINOKIO_SCHEDULER.Model
             {
                 return CR(machineNumber, dt, pr);
             }
-
+            else if (ruleType == 5)
+            {
+                return HASA(machineNumber, dt, pr);
+            }
             return null;
         }
 
         public static List<string> FIFO_RoundRobin(int machineNumber, DataTable dt, Problem pr)
         {
             List<string> lstDispatching = new List<string>();
-            lstDispatching.Add(machineNumber + ",,,,,,,,");
+            lstDispatching.Add(machineNumber + ",,,,,,,,,");
 
             List<DispatchingModel> lstdp = new List<DispatchingModel>();
             for (int i = 0; i < machineNumber; i++)
@@ -115,12 +118,14 @@ namespace PINOKIO_SCHEDULER.Model
                     {
                         if (SetupTime != 2)
                         {
+                           
                             StartTime += SetupTime;
                             EndTime += SetupTime;
                             dispModel.LastEndTime = dispModel.LastEndTime + ProcessingTime + SetupTime;
                         }
                         else
                         {
+                            
                             StartTime += 2;
                             EndTime += 2;
                             dispModel.LastEndTime = dispModel.LastEndTime + ProcessingTime + 2;
@@ -135,6 +140,7 @@ namespace PINOKIO_SCHEDULER.Model
                     }
                     else
                     {
+                        
                         dispModel.LastEndTime += ProcessingTime;
                     }
                 }
@@ -277,7 +283,10 @@ namespace PINOKIO_SCHEDULER.Model
                     continue;
 
                 DispatchingModel DP_LeastMakeSpan = lstdp.OrderBy(x => x.LastEndTime).ToList()[0];
-
+                if (!string.IsNullOrEmpty(DP_LeastMakeSpan.LastJob))
+                {
+                    DP_LeastMakeSpan = lstdp.FindAll(x => x.LastJob.Equals(job.JobType)).OrderBy(x => x.LastEndTime).ToList()[0];
+                }
                 int Id_Lot = job.ID_Lot;
                 string JobType = job.JobType;
                 int DueDate = job.DueTime;
@@ -286,7 +295,7 @@ namespace PINOKIO_SCHEDULER.Model
                 int SetupTime = DEF.SETUPTIME;
                 int StartTime = 0;
                 int EndTime = 0;
-
+                int isSetup = 0;
                 int Violation = 0;
 
                 if (pr.Dic_JobType_Setting.ContainsKey(JobType))///6.옵션이 있을 경우 및 셋업타임 가져옴
@@ -316,15 +325,17 @@ namespace PINOKIO_SCHEDULER.Model
                 if (string.IsNullOrEmpty(dispModel.LastJob)) //장비에 전작업이 없고 첫 작업이면 걍 추가
                 {
                     dispModel.LastEndTime += ProcessingTime;
+                    SetupTime = 0;
                 }
                 else
                 {
                     if (!dispModel.LastJob.Equals(JobType))// 셋업발생
                     {
-                        StartTime += 2;
-                        EndTime += 2;
-                        dispModel.LastEndTime = dispModel.LastEndTime + ProcessingTime + 2;
-
+                       // SetupTime = pr.Dic_JobType_Setting[JobType].SetUp_Time;
+                        StartTime += DEF.SETUPTIME;
+                        EndTime += DEF.SETUPTIME;
+                        dispModel.LastEndTime = dispModel.LastEndTime + ProcessingTime + DEF.SETUPTIME;
+                        isSetup = SetupTime;
                         Violation = EndTime - DueDate;
 
                         if (Violation < 0)
@@ -332,6 +343,7 @@ namespace PINOKIO_SCHEDULER.Model
                     }
                     else
                     {
+                        SetupTime = 0;
                         dispModel.LastEndTime += ProcessingTime;
                     }
                 }
@@ -339,7 +351,7 @@ namespace PINOKIO_SCHEDULER.Model
                 dispModel.LastJob = JobType;
                 /////////////
 
-                lstDispatching.Add(Id_Lot + "," + Id_Machine + "," + JobType + "," + ProcessingTime + "," + StartTime + "," + EndTime + "," + DueDate + "," + SetupTime + "," + Violation + "," + SetupTime);
+                lstDispatching.Add(Id_Lot + "," + Id_Machine + "," + JobType + "," + ProcessingTime + "," + StartTime + "," + EndTime + "," + DueDate + "," + isSetup + "," + Violation + "," + SetupTime);
 
                 dt.Remove(dt.Find(x => x.ID_Lot == Id_Lot));
             }
@@ -424,7 +436,7 @@ namespace PINOKIO_SCHEDULER.Model
                             }
                             else
                             {
-                                isSetup = SetupTime;
+                                isSetup =SetupTime;
                             }
                         }
 
@@ -442,7 +454,7 @@ namespace PINOKIO_SCHEDULER.Model
                         //10. 선정된 머신마다 모든 잡을 할당하고 slack이 가장 낮은 것을 할당함
                         //lstMPTPair.Add(slack, new ScheduleModel(Id_Lot, Id_Machine, JobType, ProcessingTime, StartTime, EndTime, DueDate, SetupTime, Violation, SetupTime));
 
-                        lstMPTPair.Add(new Tuple<int, ScheduleModel>(slack, new ScheduleModel(Id_Lot, Id_Machine, JobType, ProcessingTime, StartTime, EndTime, DueDate, SetupTime, Violation, SetupTime)));
+                        lstMPTPair.Add(new Tuple<int, ScheduleModel>(slack, new ScheduleModel(Id_Lot, Id_Machine, JobType, ProcessingTime, StartTime, EndTime, DueDate, isSetup, Violation, SetupTime)));
                         test = lstMPTPair;
                     }
                     DiclstMPTPair.Add(dis.Id_Machine, test);
@@ -506,7 +518,7 @@ namespace PINOKIO_SCHEDULER.Model
                     dt.Remove(dt.Find(x => x.ID_Lot == sss.Values.ElementAt(0).Item2.ID_LOT));
 
                 }
-                else if (sss.Count() != 0 && sssYes.Count ==0)
+                else if (sss.Count() != 0 && sssYes.Count == 0)
                 {
                     sss = sss.OrderBy(x => x.Value.Item2.EndTime).ToDictionary(p => p.Key, p => p.Value);
 
@@ -621,7 +633,7 @@ namespace PINOKIO_SCHEDULER.Model
                             Violation = 0;
 
                         //10. 선정된 머신마다 모든 잡을 할당하고 slack이 가장 낮은 것을 할당함
-                        lstMPTPair.Add(new Tuple<double, ScheduleModel>(cr, new ScheduleModel(Id_Lot, Id_Machine, JobType, ProcessingTime, StartTime, EndTime, DueDate, SetupTime, Violation, SetupTime)));
+                        lstMPTPair.Add(new Tuple<double, ScheduleModel>(cr, new ScheduleModel(Id_Lot, Id_Machine, JobType, ProcessingTime, StartTime, EndTime, DueDate, isSetup, Violation, SetupTime)));
                         test = lstMPTPair;
                     }
                     DiclstMPTPair.Add(dis.Id_Machine, test);
@@ -718,5 +730,90 @@ namespace PINOKIO_SCHEDULER.Model
             return lstDispatching;
         }
 
+        public static List<string> HASA(int machineNumber, DataTable data, Problem pr)
+        {
+            List<JobModel> dt = new List<JobModel>();
+            float TargetValue = 0;
+
+            for (int i = 0; i < data.Rows.Count; i++)
+                dt.Add(new JobModel(i, data.Rows[i][1].ToString(), Convert.ToInt32(data.Rows[i][2].ToString()), Convert.ToInt32(data.Rows[i][3].ToString())));
+
+            int[,] matrix = new int[dt.Count, machineNumber];
+            int[,] defaultProceesing = new int[dt.Count, machineNumber];
+            int[] Min_Time = new int[dt.Count];
+            int[] Min_Index = new int[dt.Count];
+            List<string> lstDispatching = new List<string>();
+            lstDispatching.Add(machineNumber + ",,,,,,,,,");
+            List<DispatchingModel> lstdp = new List<DispatchingModel>();
+            for (int i = 0; i < machineNumber; i++)
+                lstdp.Add(new DispatchingModel(i, 0, string.Empty));
+            for (int i = 0; i < dt.Count; i++)
+            {
+                string JobType = dt[i].JobType;
+                int ProcessingTime = Convert.ToInt32(dt[i].Quantity);
+                for (int j = 0; j < lstdp.Count; j++)
+                {
+                    matrix[i, j] = ProcessingTime * pr.Dic_JobType_Setting[JobType].ProcessTime_Machine[lstdp[j].Id_Machine];
+                    defaultProceesing[i, j] = ProcessingTime * pr.Dic_JobType_Setting[JobType].ProcessTime_Machine[lstdp[j].Id_Machine];
+                    
+                }
+                
+            }
+        for (int j=0; j< dt.Count; j++)
+         {
+                
+              //  int Lotindex = 0;
+            for (int i = 0; i < dt.Count; i++)
+            {
+                int[] MinValue = new int[machineNumber];
+                int ArraySize = sizeof(int) * machineNumber;
+                System.Buffer.BlockCopy(matrix, i * ArraySize, MinValue, 0, ArraySize);
+                    
+                Min_Index[i] = Maths.MinIndex(MinValue);                                 
+                 Min_Time[i] = MinValue[Min_Index[i]];
+                    
+                
+                 
+            }
+
+            float AverageValue = Maths.Average(Min_Time,dt.Count);
+            TargetValue = (float)AverageValue / 2;
+            int ValueIndex = Maths.Near(Min_Time, TargetValue);
+            int Machineindex = Min_Index[ValueIndex];
+            DispatchingModel dispatchingModel = lstdp[Machineindex];
+                int Id_Machine = Machineindex;
+                string JobType = dt[ValueIndex].JobType;
+                int Id_Lot = dt[ValueIndex].ID_Lot;
+                int ProcessingTime = defaultProceesing[ValueIndex,Machineindex];
+                int StartTime = dispatchingModel.LastEndTime;
+                int EndTime = StartTime + ProcessingTime;
+                int DueDate = dt[ValueIndex].DueTime;
+                int isSetup = 0;
+                int Violation = EndTime - DueDate;
+                if (Violation < 0)
+                    Violation = 0;
+                int SetupTime = 0;
+                dispatchingModel.LastEndTime = StartTime + ProcessingTime;
+                
+                for (int i=0; i< lstdp.Count; i++)
+                {                  
+                    matrix[ValueIndex,i] = Int32.MaxValue;
+                }
+                for(int i=0; i< dt.Count; i++)
+                {
+
+                    if (i != ValueIndex) {
+                        if (matrix[i, Machineindex] != Int32.MaxValue)
+                        {
+                            matrix[i, Machineindex] = matrix[i, Machineindex] + ProcessingTime;
+                        }
+                }
+}
+                lstDispatching.Add(Id_Lot + "," + Id_Machine + "," + JobType + "," + ProcessingTime + "," + StartTime + "," + EndTime + "," + DueDate + "," + isSetup + "," + Violation + "," + SetupTime);
+            }
+            return lstDispatching;
+        }
+
     }
+
 }

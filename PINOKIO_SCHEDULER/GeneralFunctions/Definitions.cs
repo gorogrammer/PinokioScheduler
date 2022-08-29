@@ -22,6 +22,7 @@ namespace PINOKIO_SCHEDULER.Definitions
         public static string GRID_SCHEDULES_COL_VIOLATION = "Violation";
         public static string GRID_SCHEDULES_COL_QUANTITY = "Quantity";
 
+
         public static string GRAPH_TARDY = "Tardiness";
         public static string GRAPH_SETUP = "Setup Time";
         public static string GRAPH_RESOURCE = "Resource Utilities";
@@ -115,5 +116,5 @@ namespace PINOKIO_SCHEDULER.Definitions
         public static Color Y_StringColor = Color.DarkOrange;
         public static Color Z_StringColor = Color.Tomato;
     }
-   
+  
 }
