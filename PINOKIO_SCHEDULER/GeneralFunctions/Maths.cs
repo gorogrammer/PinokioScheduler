@@ -69,6 +69,60 @@ namespace PINOKIO_SCHEDULER.GeneralFunctions
         {
             return (p < 0) ? -p : p;
         }
+        public static int MaxQuant(Dictionary<int, int> dic)
+        {
+            int max = 0;
+            foreach (KeyValuePair<int, int> pair in dic)
+            {
+                if (max < pair.Value)
+                    max = pair.Value;
+            }
+
+            return max;
+        }
+
+        public static int MinQuant(Dictionary<int, int> dic)
+        {
+            int max = 0;
+            foreach (KeyValuePair<int, int> pair in dic)
+            {
+                if (max < pair.Value)
+                    max = pair.Value;
+            }
+
+            return max;
+        }
+        public static int Normal_Random(int seed, double mean, double std)
+        {
+            Random sd = new Random();
+            sd.Next(1, 3000);
+
+            Random rand = new Random((Guid.NewGuid().GetHashCode() * sd.Next() * (int)DateTime.Now.Millisecond + seed) % (seed + sd.Next())); //reuse this if you are generating many
+            double u1 = 1.0 - rand.NextDouble(); //uniform(0,1] random doubles
+            double u2 = 1.0 - rand.NextDouble();
+
+            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
+                         Math.Sin(2.0 * Math.PI * u2); //random normal(0,1)
+
+            if (randStdNormal < 0)
+                randStdNormal = randStdNormal * -1;
+
+            double randNormal =
+                         mean + std * randStdNormal; //random normal(mean,stdDev^2)
+
+
+            return Convert.ToInt32(randNormal);
+        }
+        public static double RandomDue(int seed, int max, double tight, int min, int maxProcess, int A)
+        {
+            Random sds = new Random();
+            sds.Next(1, 3000);
+            double value = 0;
+            Random sd = new Random((Guid.NewGuid().GetHashCode() * sds.Next() * (int)DateTime.Now.Millisecond + seed) % (seed + sds.Next()));
+            value = Convert.ToInt32(sd.Next(0, A)) * tight;
+
+            return value + min;
+        }
     }
 
 }

@@ -216,7 +216,7 @@ namespace PINOKIO_SCHEDULER
             }
             else if (msg.Contains("GETMACHINE_INFO"))
             {
-                returnString = PySocket.ToPY_GetMachine_LastTime(msg, DicSchedule);
+            //    returnString = PySocket.ToPY_GetMachine_LastTime(msg, PY_istdp);
             }
             else if (msg.Equals("GETJBL_CURRENT"))
             {

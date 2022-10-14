@@ -794,10 +794,10 @@ namespace PINOKIO_SCHEDULER.Model
                     Violation = 0;
                 int SetupTime = 0;
                 dispatchingModel.LastEndTime = StartTime + ProcessingTime;
-                
                 for (int i=0; i< lstdp.Count; i++)
-                {                  
+                {
                     matrix[ValueIndex,i] = Int32.MaxValue;
+                    
                 }
                 for(int i=0; i< dt.Count; i++)
                 {

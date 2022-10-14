@@ -60,7 +60,6 @@ namespace PINOKIO_SCHEDULER
         List<string> ErrorArr = new List<string>();
         List<string> ErrorProcessing = new List<string>();
         List<string> Errorjobtype = new List<string>();
-
         List<string> ErrorSetupOX = new List<string>();
         List<string> ErrorInput = new List<string>();
         public string SelectCell;
@@ -82,7 +81,6 @@ namespace PINOKIO_SCHEDULER
         public DevExpress.Utils.ToolTipController tooltipcontroller1 = new ToolTipController();
         public Dictionary<string, ScheduleModel> DicJobInfo = new Dictionary<string, ScheduleModel>();
         public Dictionary<int, List<string>> DicMachineJobList = new Dictionary<int, List<string>>();
-
         public Dictionary<string, ScheduleLog> DicSchedule = new Dictionary<string, ScheduleLog>();
         public Dictionary<string, RemainJob> DicRemainJob = new Dictionary<string, RemainJob>();
 
@@ -106,6 +104,7 @@ namespace PINOKIO_SCHEDULER
         public List<GraphModel> _lstGraphicModel;
         public Dictionary<int, TimeGrapgh> _dicGraphTime = new Dictionary<int, TimeGrapgh>();
         DataTable _DT_Job;
+        
         DataTable _DT_ScheduleTable;
         DataTable _DT_ScheduleList;
         DataTable _DT_ScheduleList_Assigned;
@@ -128,13 +127,28 @@ namespace PINOKIO_SCHEDULER
         public int _TotalJobNum;
         public int _TotalWorkingTime;
         public int _AnimationTic;
+       
+
         public Entity[] Entity3DS;
-    
+
+        #region Python_Member
+        public int _PY_Violation;
+
+        DataTable _Left_Job;
+
+        List<DispatchingModel> PY_istdp = new List<DispatchingModel>();
+        List<int> _PY_Setup = new List<int>();
+        List<string> lstDispatching_PY = new List<string>();
+
+        #endregion
+
+
+
         #endregion
 
         public MainForm_Ribbon()
         {
-   
+
             ShowLaunchScreen();
             InitializeComponent();
             this.model1.DisplayMode = displayType.Rendered;
@@ -150,7 +164,7 @@ namespace PINOKIO_SCHEDULER
             model1.Unlock("US2-RHM61-2NWXC-YS38-SA3F");
             comboBox1.SelectedIndex = 0;
             //comboBox2.SelectedIndex = 17;
-
+            this.Text = "Virtual Testbed for AI Machine Scheduling(VAMS) ver " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(2);
             SplashScreenManager.CloseForm();
 
             //Python socket interface
@@ -161,12 +175,13 @@ namespace PINOKIO_SCHEDULER
             //thread.Start();
             Problem_Value.Machine_Count = 18;
             Problem_Value.SetUp = 2;
+
             Task.Run(() => PySockets());
 
 
-            
 
-            
+
+
         }
 
         #region Python Socket interface
@@ -184,35 +199,49 @@ namespace PINOKIO_SCHEDULER
                 {
                     while (true)
                     {
-                        // 다중 접속을 허용하기 위한 Threadpool
-                        ThreadPool.QueueUserWorkItem(c =>
-                        {
-                            Socket client = (Socket)c;
-                            try
+                           
+                            // 다중 접속을 허용하기 위한 Threadpool
+                            ThreadPool.QueueUserWorkItem(c =>
                             {
-                                while (true)
+                                
+                                    Socket client = (Socket)c;
+                                try
                                 {
-                                    // 처음에 데이터 길이를 받기 위한 4byte
-                                    var data = new byte[4];
-                                    // python에서 little 엔디언으로 값이 온다. big엔디언과 little엔디언은 배열의 순서가 반대이므로 reverse
-                                    client.Receive(data, 4, SocketFlags.None);
-                                    Array.Reverse(data);
-                                    data = new byte[BitConverter.ToInt32(data, 0)];
-                                    client.Receive(data, data.Length, SocketFlags.None);
-                                    var msg = Encoding.UTF8.GetString(data);
-                                    Console.WriteLine(msg);
-                                    msg = Python_Script(msg);
-                                    data = Encoding.UTF8.GetBytes(msg);
-                                    client.Send(BitConverter.GetBytes(data.Length));
-                                    client.Send(data, data.Length, SocketFlags.None);
+                                    while (true)
+                                    {
+                                       
+                                            if (!_isTimelineAnimating)
+                                            {
+                                                // 처음에 데이터 길이를 받기 위한 4byte
+                                                var data = new byte[4];
+                                                // python에서 little 엔디언으로 값이 온다. big엔디언과 little엔디언은 배열의 순서가 반대이므로 reverse
+                                                client.Receive(data, 4, SocketFlags.None);
+                                                Array.Reverse(data);
+                                                data = new byte[BitConverter.ToInt32(data, 0)];
+                                                client.Receive(data, data.Length, SocketFlags.None);
+                                                var msg = Encoding.UTF8.GetString(data);
+                                                Console.WriteLine(msg);
+                                                msg = Python_Script(msg);
+                                                data = Encoding.UTF8.GetBytes(msg);
+                                                client.Send(BitConverter.GetBytes(data.Length));
+                                                client.Send(data, data.Length, SocketFlags.None);
+                                            }
+                                            else
+                                            {
+                                                client.Close();
+                                            }
+
+                                        
+                                    }
                                 }
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine(e.ToString());
-                                client.Close();
-                            }
-                        }, server.Accept());
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e.ToString());
+                                    client.Close();
+                                }
+                                
+                            }, server.Accept());
+                           
                     }
                 }
                 catch (Exception e)
@@ -221,7 +250,30 @@ namespace PINOKIO_SCHEDULER
                 }
             }
         }
+        public string ToPY_SendProblemSetting()
+        {
+            string PRString = string.Empty;
+            
+            for (int i=0; i< Problem_Value.Machine_Count; i++)
+            {
+                string MachineType = string.Empty;
+                string ProcessingTime = string.Empty;
+                string SetUp = string.Empty;
+                for (int j=0; j< Problem_Value.Dic_JobType_Setting.Count; j++)
+                {
 
+                    if (Problem_Value.Dic_JobType_Setting.ElementAt(j).Value.ProcessTime_Machine.ContainsKey(i))
+                    {
+                        MachineType += Problem_Value.Dic_JobType_Setting.ElementAt(j).Value.TYPE + "/";
+                        ProcessingTime += Problem_Value.Dic_JobType_Setting.ElementAt(j).Value.ProcessTime_Machine.Values.ElementAt(i).ToString() + "/";
+                        SetUp = Problem_Value.Dic_JobType_Setting.ElementAt(j).Value.SetUp_Time.ToString();
+                    }
+                }
+                PRString += i.ToString() + ", " + MachineType +", "+ ProcessingTime +", " +SetUp + "\n";
+            }
+
+            return PRString;
+        }
         public string Python_Script(string msg)
         {
             string returnString = string.Empty;
@@ -229,26 +281,143 @@ namespace PINOKIO_SCHEDULER
             if (msg.Contains("SETSCL"))
             {
                 if (_lstOriginalSchedule != null)
-                    ClearSchedules();
+                    BeginInvoke(new Action(() => ClearSchedules()));
 
                 List<string> lstPythonScheduleList = PySocket.FromPY_SetScheduleList(msg);
                 InitializeWithPythonSchedules(lstPythonScheduleList);
             }
-            else if (msg.Contains("SETJBL"))
+            else if (msg.Contains("EXGAN"))   //ExportToJpg Gantt_Chart 
+            {
+
+
+                string[] path = msg.Split(STR.ENTER);
+                string[] path2 = path[1].Split('/');
+                string RealPath = string.Empty;
+                for (int i = 0; i < path2.Length; i++)
+                {
+                    if (path2[i] != string.Empty)
+                        RealPath += path2[i] + @"\";
+                }
+                string ExportChartFolder = RealPath + @"ExportGantt" + DateTime.Now.Year + DateTime.Now.Month + DateTime.Now.Day + "_" + DateTime.Now.Hour + DateTime.Now.Minute + DateTime.Now.Second;
+                DirectoryInfo di = new DirectoryInfo(ExportChartFolder);
+
+                SelectChartForm Open = new SelectChartForm();
+                Open.Main = this;
+                if (di.Exists == false)
+                    di.Create();
+
+                if (_dicGraphTime.Count > 0)
+                {
+                    Open.load_SelectChart("TARDY");
+                    Open.SelectChart.ExportToImage(ExportChartFolder + @"\Chart_Tardy.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Open.SelectChart.DataSource = null;
+                    Open.SelectChart.Series.Clear();
+                    Open.load_SelectChart("SETUP");
+                    Open.SelectChart.ExportToImage(ExportChartFolder + @"\Chart_Setup.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Open.SelectChart.DataSource = null;
+                    Open.SelectChart.Series.Clear();
+                    Open.load_SelectChart("RESOURCE");
+                    Open.SelectChart.ExportToImage(ExportChartFolder + @"\Chart_Resource.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                    returnString = "Success";
+                }
+                else
+                { returnString = "Failed"; }
+            }
+            else if (msg.Contains("GETALOCJOBLIST"))
+            {
+                returnString = PySocket.ToPY_GetAllocPos(msg, PY_istdp);
+            }
+            else if (msg.Contains("GENPR"))      // Generate_Problem
+            {
+                Problem_Value = PySocket.FromPY_ProblemSetting(msg);
+                if (PY_istdp.Count == 0)
+                {
+                    for (int i = 0; i < Problem_Value.Machine_Count; i++)
+                        PY_istdp.Add(new DispatchingModel(i, 0, string.Empty));
+                }
+                _TotalMachineNum = Problem_Value.Machine_Count;
+                BeginInvoke(new Action(() => model1.Text = Problem_Value.Machine_Count.ToString()));
+                returnString = ToPY_SendProblemSetting();
+            }
+            else if (msg.Contains("GENJB"))      // Generate_jobs
+            {
+                
+                DataTable JobList = PySocket.FromPY_JobListSetting(msg, Problem_Value);
+                DataTable JobList2 = PySocket.FromPY_JobListSetting(msg, Problem_Value); // 현재 할당되지않은 JobList
+
+                if (JobList.Rows.Count != 0 && JobList2.Rows.Count != 0)
+                {
+                    DicJobList.Clear();
+                    Grid_WF_JOB.BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = JobList));
+                    _DT_Job = JobList;
+                    _Left_Job = JobList2; // 현재 할당되지않은 JobList
+
+                    for (int i = 0; i < _DT_Job.Rows.Count; i++)
+                    {
+                        DicJobList.Add(_DT_Job.Rows[i][1].ToString() + i.ToString(), new JobModel(i, _DT_Job.Rows[i][1].ToString(), Convert.ToInt32(_DT_Job.Rows[i][2].ToString()), Convert.ToInt32(_DT_Job.Rows[i][3].ToString())));
+                        returnString += i.ToString() + ", " + _DT_Job.Rows[i][1].ToString() + ", " + _DT_Job.Rows[i][2].ToString() + ", " + _DT_Job.Rows[i][3].ToString() + "\n";
+                    }
+                }
+                else
+                {
+                    returnString = "Error";
+                }
+            }
+            else if (msg.Contains("SETJBL"))     //
             {
                 if (_DT_Job != null)
                     ClearSchedules();
 
                 DataTable JobDT = PySocket.FromPY_SetJobList(msg);
                 _DT_Job = JobDT;
+                _Left_Job = JobDT;
                 Grid_WF_JOB.BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = _DT_Job));
+                Grid_WF_JOB.BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = _Left_Job));
                 _TotalJobNum = JobDT.Rows.Count;
                 GC_WF_SCHEDULE.BeginInvoke(new Action(() => GC_WF_SCHEDULE.Refresh()));
                 Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.Refresh()));
             }
-            else if (msg.Equals("GETJBL"))
+            else if (msg.Contains("COM"))
+            {
+                if(PY_istdp.Count == 0)
+                {
+                    returnString = "Error";
+                }
+                returnString = PySocket.ToPY_GetMachineCompleteTime(msg,PY_istdp);
+            }
+            else if (msg.Contains("SETINI"))     //Initialize
+            {
+                BeginInvoke(new Action(() => ClearSchedules()));
+                if (_DT_Job != null)
+                {
+                    BeginInvoke(new Action(() => this.gridView1.Columns.Clear()));
+                    BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = null));
+                    BeginInvoke(new Action(() => _DT_Job.Clear()));
+                }
+            }
+
+            else if (msg.Contains("GETSET")) //Get_total_setups
+            {
+
+                returnString = _PY_Setup.Count().ToString();
+            }
+            else if (msg.Contains("SETTIME")) //Get_total_setups
+            {
+
+                returnString = _PY_Setup.Sum().ToString();
+            }
+            else if (msg.Contains("GETTAD")) //Get_total_tardiness
+            {
+                returnString = _PY_Violation.ToString();
+            }
+
+            else if (msg.Contains("GETJBL"))  // Get_joblist
             {
                 returnString = PySocket.ToPY_GetJobList(_DT_Job);
+            }
+            else if (msg.Contains("GETSORTJBL"))  // Get_joblist_Sort
+            {
+                returnString = PySocket.ToPY_GetSortJobList(msg,_Left_Job);
             }
             else if (msg.Equals("GETJBL_TYPE"))
             {
@@ -256,9 +425,9 @@ namespace PINOKIO_SCHEDULER
             }
             else if (msg.Contains("GETMACHINE_INFO"))
             {
-                returnString = PySocket.ToPY_GetMachine_LastTime(msg, DicSchedule);
+                returnString = PySocket.ToPY_GetMachine_LastTime(msg, PY_istdp);
             }
-            else if (msg.Equals("GETJBL_CURRENT"))
+            else if (msg.Contains("GETJBL_CURRENT"))
             {
                 returnString = PySocket.ToPY_GetJobList_Current(DicRemainJob);
             }
@@ -348,7 +517,136 @@ namespace PINOKIO_SCHEDULER
                     _CurrentStep++;
                 }
             }
+            else if (msg.Contains("CALCULTAD"))
+            {
+                returnString = PySocket.ToPY_Calcul_Tardy(msg, Problem_Value, PY_istdp);
+            }
+            else if (msg.Contains("CALTADJBL"))
+            {
+                returnString = PySocket.ToPY_Calcul_TardyJobList(msg, Problem_Value, PY_istdp,DicJobList);
+            }
+            else if (msg.Contains("CALCULSET"))
+            {
+                returnString = PySocket.ToPY_Calcul_SetupTime(msg, DicMachine, Problem_Value);
+            }
+            else if (msg.Contains("CALCULPT"))
+            {
+                returnString = PySocket.ToPY_Calcul_ProcessingTime(msg, Problem_Value);
+            }
+            else if (msg.Contains("CALPTID"))
+            {
+                returnString = PySocket.ToPY_Calcul_ProcessingTimeID(msg, Problem_Value,DicJobList);
+            }
+            else if (msg.Contains("ALLOC"))
+            {
+               
+                    if (lstDispatching_PY.Count == 0)
+                        lstDispatching_PY.Add(Problem_Value.Machine_Count + ",,,,,,,,,");
+                    if (!lstDispatching_PY[0].Contains(Problem_Value.Machine_Count.ToString()))
+                        lstDispatching_PY.Clear();
+                    string[] split = msg.Split(STR.ENTER)[1].Split(STR.COMMA);
+                    int Id_Machine = Int32.Parse(split[0]);
+                    List<DispatchingModel> lstdp = new List<DispatchingModel>();
+                    if (PY_istdp.Count == 0)
+                    {
+                        for (int i = 0; i < Problem_Value.Machine_Count; i++)
+                            PY_istdp.Add(new DispatchingModel(i, 0, string.Empty));
+                    }
+                    DispatchingModel selectMachine = PY_istdp.Find(x => x.Id_Machine.Equals(Id_Machine));
+                    int ID_lot = Int32.MaxValue;
+                    foreach (JobModel job in DicJobList.Values)
+                    {
+                       
+                                       
+                        if (job.ID_Lot.Equals(Int32.Parse(split[1])))
+                        {
+                        ID_lot = job.ID_Lot;
+                          if (_Left_Job.Rows.Count != DicJobList.Count)
+                          {
 
+                            if (_Left_Job.Rows.Contains(job.ID_Lot))
+                            {
+                                ID_lot = job.ID_Lot;
+                            }
+                            else
+                            {
+                                ID_lot = Int32.MaxValue;
+                                returnString = "Error";
+                            }
+                          }
+                        if (ID_lot == job.ID_Lot)
+                        {
+                            int Setup = 2;
+                            int ProcessingTime = Problem_Value.Dic_JobType_Setting[job.JobType].ProcessTime_Machine[Int32.Parse(split[0])] * job.Quantity;
+                            int StartTime = selectMachine.LastEndTime;
+                            int EndTime = StartTime + ProcessingTime;
+                            int DueDate = EndTime - StartTime;
+                            int Violation = EndTime - DueDate;
+                            if (Violation < 0)
+                                Violation = 0;
+                            if (selectMachine.LastJob != string.Empty)
+                            {
+                                if (selectMachine.LastJob == job.JobType)
+                                {
+                                    Setup = 0;
+                                }
+                                else if (selectMachine.LastJob != job.JobType)
+                                {
+                                    Setup = 2;
+                                    StartTime = StartTime + Setup;
+                                    EndTime = StartTime + ProcessingTime;
+                                    DueDate = EndTime - StartTime;
+                                    Violation = EndTime - DueDate;
+                                    _PY_Setup.Add(Setup);
+                                }
+                            }
+                            else
+                            {
+                                Setup = 0;
+                            }
+                            selectMachine.LastEndTime = EndTime;
+                            selectMachine.LastJob = job.JobType;
+                            
+                            _PY_Violation += Violation;
+                            lstDispatching_PY.Add(job.ID_Lot + "," + Id_Machine + "," + job.JobType + "," + ProcessingTime + "," + StartTime + "," + EndTime + "," + DueDate + "," + Setup + "," + Violation + "," + Setup);
+                            selectMachine.WorkJob.Add(job.ID_Lot.ToString());
+                            returnString = Setup + "," + Violation + "," + EndTime;
+                            foreach (DataRow row in _Left_Job.Rows)
+                            {
+                                if (Convert.ToInt32(row.ItemArray[0]) == job.ID_Lot)
+                                {
+                                    BeginInvoke(new Action(() => row.Delete()));
+                                }
+                            }
+                        }
+                        }
+                    
+
+                    }
+                if (returnString == string.Empty)
+                {
+                    returnString = "Error";
+                }
+
+
+            }
+            else if (msg.Contains("SCHFIN"))
+            {
+                if (_Left_Job.Rows.Count != 0)
+                {
+                    returnString = "Error";
+                }
+                else
+                {
+                    _lstSchedule = GeneralFunc.GetScheduleModels(lstDispatching_PY, out _TotalMachineNum, out _TotalWorkingTime, out _DT_ScheduleList);
+                    _lstGraphicModel = GeneralFunc.GetGraphicModels(_lstSchedule);
+                    BeginInvoke(new Action(() => InitializeGrid_ByJOBLOADING()));
+                    InitializeGraph();
+                    InitializeEyeShotSingle();
+                    UpdateJobInfoDic(_lstSchedule);
+                }
+                
+            }
             return returnString;
         }
         private delegate void RunDelegate();
@@ -370,12 +668,12 @@ namespace PINOKIO_SCHEDULER
             Application.Run(infoForm);
         }
         public void AddSchedule(ScheduleModel model)
-        {   
+        {
 
             _DT_ScheduleList.Rows.Add(model.ID_LOT, model.ID_Machine, model.JobType, model.ProcessingTime, model.StartTime, model.EndTime, model.DueTime, model.Setup, model.Violation);
 
         }
-        
+
         public void Add_AssignedSchedule(ScheduleModel model)
         {
             _DT_ScheduleList_Assigned.Rows.Add(model.ID_LOT, model.ID_Machine, model.JobType, model.ProcessingTime, model.StartTime, model.EndTime, model.DueTime, model.Setup, model.Violation);
@@ -383,6 +681,7 @@ namespace PINOKIO_SCHEDULER
 
         public void InitializeWithPythonSchedules(List<string> pythonStrLst)
         {
+            
             InitializeSettings();
             _lstSchedule = GeneralFunc.GetScheduleModels(pythonStrLst, out _TotalMachineNum, out _TotalWorkingTime, out _DT_ScheduleList);
             _lstOriginalSchedule = new List<string>();
@@ -460,7 +759,7 @@ namespace PINOKIO_SCHEDULER
         }
         public bool ReadFiles()
         {
-            
+
             _LoadCsvPath = GeneralFunc.OpenFiles();
             ErrorArr.Clear();
             ErrorSetupTime.Clear();
@@ -475,7 +774,7 @@ namespace PINOKIO_SCHEDULER
             List<string> lstReadCSV = GeneralFunc.ReadCsv(_LoadCsvPath);
             if (lstReadCSV == null)
                 return false;
-            
+
             //리스트로 이루어진 스케쥴 초기 모델
             _lstSchedule = GeneralFunc.GetScheduleModels_Import(lstReadCSV, out _TotalMachineNum, out _TotalWorkingTime, out _DT_ScheduleList);
 
@@ -484,7 +783,7 @@ namespace PINOKIO_SCHEDULER
                 UpdateJobInfoDic(_lstSchedule);
                 UpdateMachineJobList(_lstSchedule);
 
-                if (Problem_Value.Dic_JobType_Setting.Count != 0 && gridView1.RowCount>0)
+                if (Problem_Value.Dic_JobType_Setting.Count != 0 && gridView1.RowCount > 0)
                 {
 
 
@@ -516,48 +815,48 @@ namespace PINOKIO_SCHEDULER
                     {
                         string JobtypeLotid = sche.JobType + sche.ID_LOT.ToString();
                         double violation = sche.EndTime - sche.DueTime;
-                        
-                            if (violation <= 0)
+
+                        if (violation <= 0)
+                        {
+                            if (sche.Violation != 0)
+                                ErrorViolation.Add(JobtypeLotid);
+                        }
+                        else
+                        {
+                            if (violation != sche.Violation)
+                                ErrorViolation.Add(JobtypeLotid);
+                        }
+
+
+
+                        if (DicMachineJobList.ContainsKey(sche.ID_Machine))
+                        {
+                            int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
+
+                            if (idx == 0)
                             {
-                                if (sche.Violation != 0)
-                                    ErrorViolation.Add(JobtypeLotid);
+                                if (sche.Setup != 0)
+                                    ErrorSetupOX.Add(JobtypeLotid);
+
                             }
                             else
                             {
-                                if (violation != sche.Violation)
-                                    ErrorViolation.Add(JobtypeLotid);
-                            }
-                        
 
-                            
-                            if (DicMachineJobList.ContainsKey(sche.ID_Machine))
-                            {
-                                int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
-
-                                if (idx == 0)
+                                if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
                                 {
                                     if (sche.Setup != 0)
                                         ErrorSetupOX.Add(JobtypeLotid);
-
                                 }
-                                else
+                                else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
                                 {
+                                    if (sche.Setup == 0)
+                                        ErrorSetupOX.Add(JobtypeLotid);
 
-                                    if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
-                                    {
-                                        if (sche.Setup != 0)
-                                            ErrorSetupOX.Add(JobtypeLotid);
-                                    }
-                                    else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
-                                    {
-                                        if (sche.Setup == 0)
-                                            ErrorSetupOX.Add(JobtypeLotid);
-
-                                    }
                                 }
                             }
-                        
-                        
+                        }
+
+
                     }
 
                     if (ErrorArr.Count > 0 || ErrorSetupTime.Count > 0 || ErrorProcessing.Count > 0 || Errorjobtype.Count > 0 || ErrorSetupOX.Count > 0 || ErrorViolation.Count > 0)
@@ -580,11 +879,11 @@ namespace PINOKIO_SCHEDULER
             }
             else
                 return false;
-          
+
         }
 
-      
-        private void CheckScheduleImport(Dictionary<string, Job_Setting_Value> problem, List<ScheduleModel> schedule)  
+
+        private void CheckScheduleImport(Dictionary<string, Job_Setting_Value> problem, List<ScheduleModel> schedule)
         {
             ErrorArr.Clear();
             ErrorSetupTime.Clear();
@@ -596,87 +895,87 @@ namespace PINOKIO_SCHEDULER
 
 
 
-              foreach (ScheduleModel sche in schedule)
-              {
+            foreach (ScheduleModel sche in schedule)
+            {
                 string JobtypeLotid = sche.JobType + sche.ID_LOT.ToString();
                 double violation = sche.EndTime - sche.DueTime;
                 if (problem.ContainsKey(sche.JobType))
                 {
-                   
 
-                    if(!problem[sche.JobType].ProcessTime_Machine.ContainsKey(sche.ID_Machine))
+
+                    if (!problem[sche.JobType].ProcessTime_Machine.ContainsKey(sche.ID_Machine))
                     {
                         if (!ErrorArr.Contains(JobtypeLotid))
                             ErrorArr.Add(JobtypeLotid);
                     }
-                    else if(DicJobList.ContainsKey(JobtypeLotid)&&DicJobList.Count !=0 && problem[sche.JobType].ProcessTime_Machine[sche.ID_Machine]*DicJobList[JobtypeLotid].Quantity != sche.ProcessingTime)
+                    else if (DicJobList.ContainsKey(JobtypeLotid) && DicJobList.Count != 0 && problem[sche.JobType].ProcessTime_Machine[sche.ID_Machine] * DicJobList[JobtypeLotid].Quantity != sche.ProcessingTime)
                     {
                         if (!ErrorProcessing.Contains(JobtypeLotid))
                             ErrorProcessing.Add(JobtypeLotid);
                     }
-                    else if(DicJobList.Count != 0)
+                    else if (DicJobList.Count != 0)
                     {
                         if (!DicJobList.ContainsKey(JobtypeLotid))
                         {
                             Errorjobtype.Add(JobtypeLotid);
                         }
-                        
+
                     }
-                    
-                        if (violation <= 0)
+
+                    if (violation <= 0)
+                    {
+
+                        if (sche.Violation != 0)
+                            ErrorViolation.Add(JobtypeLotid);
+                    }
+                    else
+                    {
+
+                        if (violation != sche.Violation)
+                            ErrorViolation.Add(JobtypeLotid);
+                    }
+
+                    if (DicMachineJobList.ContainsKey(sche.ID_Machine))
+                    {
+
+
+                        int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
+                        if (idx == 0)
                         {
-                             
-                            if (sche.Violation != 0)
-                                ErrorViolation.Add(JobtypeLotid);
+                            if (sche.Setup != 0)
+                                ErrorSetupOX.Add(JobtypeLotid);
+
                         }
                         else
                         {
 
-                            if (violation != sche.Violation)
-                                ErrorViolation.Add(JobtypeLotid);
+                            if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
+                            {
+
+                                if (sche.Setup != 0)
+                                    ErrorSetupOX.Add(JobtypeLotid);
+
+                            }
+                            else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
+                            {
+
+                                if (sche.Setup == 0 && problem[sche.JobType].SetUp_Time != 0)
+                                    ErrorSetupOX.Add(JobtypeLotid);
+
+                                else if (sche.SetUpTime != problem[sche.JobType].SetUp_Time)
+                                {
+
+                                    if (!ErrorSetupTime.Contains(JobtypeLotid))
+                                        ErrorSetupTime.Add(JobtypeLotid);
+
+                                }
+                            }
+
+
                         }
 
-                    if (DicMachineJobList.ContainsKey(sche.ID_Machine))
-                    {
-                       
-                           
-                                int idx = DicMachineJobList[sche.ID_Machine].FindIndex(a => a.Contains(JobtypeLotid));
-                                if (idx == 0)
-                                {
-                                    if (sche.Setup != 0)
-                                        ErrorSetupOX.Add(JobtypeLotid);
-
-                                }
-                                else
-                                {
-
-                                    if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) == JobtypeLotid.Substring(0, 1))
-                                    {
-
-                                        if (sche.Setup != 0)
-                                            ErrorSetupOX.Add(JobtypeLotid);
-
-                                    }
-                                    else if (DicMachineJobList[sche.ID_Machine][idx - 1].Substring(0, 1) != JobtypeLotid.Substring(0, 1))
-                                    {
-
-                                        if (sche.Setup == 0 && problem[sche.JobType].SetUp_Time != 0)
-                                            ErrorSetupOX.Add(JobtypeLotid);
-
-                                        else if (sche.SetUpTime != problem[sche.JobType].SetUp_Time)
-                                        {
-
-                                            if (!ErrorSetupTime.Contains(JobtypeLotid))
-                                                ErrorSetupTime.Add(JobtypeLotid);
-
-                                        }
-                                    }
 
 
-                                }
-                            
-                        
-                       
                     }
                 }
                 else
@@ -728,7 +1027,7 @@ namespace PINOKIO_SCHEDULER
             }
         }
 
-  
+
         public void UpdateJobInfoDic(List<ScheduleModel> sl)
         {
             DicJobInfo.Clear();
@@ -737,15 +1036,15 @@ namespace PINOKIO_SCHEDULER
 
                 string keyname = sd.JobType + sd.ID_LOT;
                 if (!DicJobInfo.ContainsKey(keyname))
-                {                 
+                {
                     if (endTime < sd.EndTime)
                         endTime = sd.EndTime;
-                    
+
                     DicJobInfo.Add(keyname, sd);
                 }
-                
+
             }
-           
+
 
         }
 
@@ -755,7 +1054,7 @@ namespace PINOKIO_SCHEDULER
             foreach (ScheduleModel pair in schLis)
             {
                 int MachineNo = pair.ID_Machine;
-                string jobtype = pair.JobType+pair.ID_LOT.ToString();
+                string jobtype = pair.JobType + pair.ID_LOT.ToString();
                 if (!DicMachineJobList.ContainsKey(MachineNo))
                 {
                     List<string> joblist = new List<string>();
@@ -766,7 +1065,7 @@ namespace PINOKIO_SCHEDULER
                 {
                     DicMachineJobList[MachineNo].Add(jobtype);
                 }
-                
+
             }
         }
 
@@ -776,13 +1075,13 @@ namespace PINOKIO_SCHEDULER
             _isScheduleAnimating = false;
             _CurrentStep = 0;
             _TotalWorkingTime = 0;
-            _TotalMachineNum = Convert.ToInt32(model1.Text);
+            _TotalMachineNum = Int32.Parse(model1.Text);
             _TotalJobNum = 0;
         }
 
         public void InitializeGrid()
         {
-           
+
             if (_lstSchedule == null)
                 return;
 
@@ -790,7 +1089,7 @@ namespace PINOKIO_SCHEDULER
 
             //DT는 데이터 빠른 표기를 위한 컨테이너 //잡디티 생성
 
-            if(Problem_Value.Dic_JobType_Setting.Count ==0)
+            if (Problem_Value.Dic_JobType_Setting.Count == 0)
             {
                 _TotalJobNum = _DT_ScheduleList.Rows.Count;
             }
@@ -817,7 +1116,7 @@ namespace PINOKIO_SCHEDULER
 
 
 
-           
+
 
             //그룹박스 초기화
             //GB_JOB.BeginInvoke(new Action(() => GB_JOB.Text = "Job List : " + _TotalJobNum));
@@ -829,11 +1128,11 @@ namespace PINOKIO_SCHEDULER
                 Grid_WF_JOB.BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = _DT_Job));
             else
                 Grid_WF_JOB.DataSource = _DT_Job;
-          
+
             Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.DataSource = _DT_ScheduleList));
-        
-                    // 스케줄 리스트 DT 생성	
-           _DT_ScheduleList_Assigned = GeneralFunc.GetNewScheduleListDT();
+
+            // 스케줄 리스트 DT 생성	
+            _DT_ScheduleList_Assigned = GeneralFunc.GetNewScheduleListDT();
 
             //if (Grid_WF_SCHEDULELIST_ASSIGNED.InvokeRequired)
             //    Grid_WF_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST_ASSIGNED.DataSource = _DT_ScheduleList_Assigned));
@@ -844,13 +1143,17 @@ namespace PINOKIO_SCHEDULER
             _DT_ScheduleTable = GeneralFunc.GetNewScheduleDT(_TotalWorkingTime, _TotalMachineNum);
 
             if (GC_WF_SCHEDULE.InvokeRequired)
-                GC_WF_SCHEDULE.BeginInvoke(new Action(() => GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable));
+            {
+                GC_WF_SCHEDULE.Invoke(new Action(() => GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable));
+                GC_WF_SCHEDULE.Invoke(new Action(() => Grid_WF_SCHEDULE.Columns[0].Fixed = FixedStyle.Left));
+            }
             else
+            {
                 GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable;
+                Grid_WF_SCHEDULE.Columns[0].Fixed = FixedStyle.Left;
+            }
 
-            Grid_WF_SCHEDULE.Columns[0].Fixed = FixedStyle.Left;
-       
-            SetDatatableNotsorted();
+            GC_WF_SCHEDULE.Invoke(new Action(() => SetDatatableNotsorted()));
             originColor = Grid_WF_SCHEDULE.FocusedColumn.AppearanceCell.BackColor;
             for (int i = 0; i < Grid_WF_SCHEDULE.Columns.Count; i++)
             {
@@ -859,11 +1162,11 @@ namespace PINOKIO_SCHEDULER
             }
             this.gridView1.ClearSelection();
             this.gridView2.ClearSelection();
-            
-            this.Grid_WF_SCHEDULE.ClearSelection();
-          
-        }
 
+            this.Grid_WF_SCHEDULE.ClearSelection();
+
+        }
+       
         public  Dictionary<int, TimeGrapgh> GetGraphicModels_Time(int time)
         {
     
@@ -931,7 +1234,19 @@ namespace PINOKIO_SCHEDULER
             else
                 GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable;
 
-            SetDatatableNotsorted();
+            GC_WF_SCHEDULE.Invoke(new Action(() => SetDatatableNotsorted()));
+
+            originColor = Grid_WF_SCHEDULE.FocusedColumn.AppearanceCell.BackColor;
+            for (int i = 0; i < Grid_WF_SCHEDULE.Columns.Count; i++)
+            {
+                Grid_WF_SCHEDULE.Columns[i].Width = 35;
+                Grid_WF_SCHEDULE.Columns[i].MinWidth = 0;
+            }
+            this.gridView1.ClearSelection();
+            this.gridView2.ClearSelection();
+
+            this.Grid_WF_SCHEDULE.ClearSelection();
+
         }
 
         public void InitializeGraph()
@@ -1074,12 +1389,18 @@ namespace PINOKIO_SCHEDULER
 
         public void SetDatatableNotsorted()
         {
-            for (int i = 0; i < Grid_WF_SCHEDULE.Columns.Count; i++)
-                Grid_WF_SCHEDULE.Columns[i].OptionsColumn.AllowSort  = DefaultBoolean.False;
-
-            for (int i = 0; i < gridView2.Columns.Count; i++)
-                gridView2.Columns[i].SortMode = DevExpress.XtraGrid.ColumnSortMode.Default;
-
+            try
+            {
+                
+                for (int i = 0; i < Grid_WF_SCHEDULE.Columns.Count; i++)
+                        Grid_WF_SCHEDULE.Columns[i].OptionsColumn.AllowSort = DefaultBoolean.False;
+                for (int i = 0; i < gridView2.Columns.Count; i++)
+                    gridView2.Columns[i].SortMode = DevExpress.XtraGrid.ColumnSortMode.Default;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
         public void UpdateDicJob()
         {
@@ -1442,43 +1763,19 @@ namespace PINOKIO_SCHEDULER
 
         public void UpdateMachinLabel(Dictionary<string, MachineNode> dic)
         {
-            //List<LeaderAndText> labellist = sd.MachineLabel(dic);
-
-            //for (int z = 0; z < labellist.Count; z++)
-            //{
-            //    if (!model1.Labels.Contains(labellist[z]))
-            //        model1.Labels.Add(labellist[z]);
-            //}
-
+            
 
 
 
             foreach (KeyValuePair<string, MachineNode> mn in dic)
             {
-                //MachineShape boXShape = DicBoxSahpe[mn.Value.ID];
-                //boXShape.LabelBox.Visible = true;
+                
 
                 BlockReference br = model1.Entities.ToList().First(p => p.ToString().Contains("Referencing: " + mn.Value.Name)) as BlockReference;
                 Entity ed = model1.Entities.ToList().First(p => p.ToString().Contains("Referencing: " + mn.Value.Name));
                 if (br != null)
                 {
-                    //int index = model1.Entities.IndexOf(br);
-                    //br.Attributes["att1"].Visible = true;
-                    //br.Attributes["att2"].Visible = true;
-                    //br.Attributes["att3"].Visible = true;
-                    //br.Attributes["att4"].Visible = true;
-                    //br.Attributes["att5"].Visible = true;
-
-
-                    //br.Attributes["att2"] = new AttributeReference("Job : " + mn.Value.WorkCount);
-                    //br.Attributes["att3"] = new AttributeReference("Working : " + mn.Value.TotalworkTime);
-                    //br.Attributes["att4"] = new AttributeReference("Set Up : " + mn.Value.TotalsetupTime);
-                    //br.Attributes["att5"] = new AttributeReference("IDLE : " + mn.Value.TotalIdleTime);
-                    //boXShape.Machinelabel[0] = new AttributeReference(mn.Key);
-                    //boXShape.Machinelabel[1]= new AttributeReference("총 작업 수 : " + mn.Value.WorkCount.ToString());
-                    //boXShape.Machinelabel[2] = new AttributeReference("총 작업 시간 : " + mn.Value.TotalworkTime.ToString());
-                    //boXShape.Machinelabel[3] = new AttributeReference("총 셋업 시간 : " + mn.Value.TotalsetupTime.ToString());
-                    //boXShape.Machinelabel[4] = new AttributeReference("총 유휴 시간 : " + mn.Value.TotalIdleTime.ToString());
+                   
 
                     br.Attributes["att2"].Value = "Util : " + Math.Round(mn.Value.Util,2) *100 + "%";
                     br.Attributes["att3"].Value = "Working : " + mn.Value.TotalworkTime;
@@ -1493,128 +1790,128 @@ namespace PINOKIO_SCHEDULER
 
             }
         }
-        public void ClearSchedules()
+        public bool ClearSchedules()
         {
-            _CurrentStep = 0;
-            _lstSchedule = new List<ScheduleModel>();
-            Grid_WF_SCHEDULE.Columns.Clear();
-            Grid_WF_SCHEDULELIST.DataSource = null;
-            Grid_WF_SCHEDULE.ClearSelection();
-            GC_WF_SCHEDULE.DataSource = null;
-            this.gridView2.Columns.Clear();
-
-            if (_DT_ScheduleTable != null)
+            try
             {
-                _DT_ScheduleTable.Clear();
-                _DT_ScheduleTable.Columns.Clear();
-                if (_DT_ScheduleList != null)
+                _CurrentStep = 0;
+                _lstSchedule = new List<ScheduleModel>();
+                Grid_WF_SCHEDULE.Columns.Clear();
+                Grid_WF_SCHEDULELIST.DataSource = null;
+                Grid_WF_SCHEDULE.ClearSelection();
+                GC_WF_SCHEDULE.DataSource = null;
+                this.gridView2.Columns.Clear();
+
+                if (_DT_ScheduleTable != null)
                 {
-                    _DT_ScheduleList.Clear();
-                    _DT_ScheduleList.Columns.Clear();
+                    _DT_ScheduleTable.Clear();
+                    _DT_ScheduleTable.Columns.Clear();
+                    if (_DT_ScheduleList != null)
+                    {
+                        _DT_ScheduleList.Clear();
+                        _DT_ScheduleList.Columns.Clear();
+                    }
                 }
+
+                CHART_TARDY.DataSource = null;
+                CHART_SETUP.DataSource = null;
+                CHART_RESOURCE.DataSource = null;
+                CHART_RT_SETUP.DataSource = null;
+                CHART_RT_OUTPUT.DataSource = null;
+                CHART_RT_RESOURCE.DataSource = null;
+
+                CHART_TARDY.Series.Clear();
+                CHART_SETUP.Series.Clear();
+                CHART_RESOURCE.Series.Clear();
+                CHART_RT_OUTPUT.Series.Clear();
+                CHART_RT_SETUP.Series.Clear();
+                CHART_RT_RESOURCE.Series.Clear();
+
+                if (_CHARTDT_Setup != null)
+                    _CHARTDT_Setup.Clear();
+                if (_CHARTDT_Resource != null)
+                    _CHARTDT_Resource.Clear();
+                if (_CHARTDT_Tardy_Time != null)
+                    _CHARTDT_Tardy_Time.Clear();
+                if (_RT_CHARTDT_Output != null)
+                    _RT_CHARTDT_Output.Clear();
+                if (_RT_CHARTDT_Resource != null)
+                    _RT_CHARTDT_Resource.Clear();
+                if (_RT_CHARTDT_Setup != null)
+                    _RT_CHARTDT_Setup.Clear();
+
+                if (_CHARTDT_Setup != null)
+                    _CHARTDT_Setup.Columns.Clear();
+                if (_CHARTDT_Resource != null)
+                    _CHARTDT_Resource.Columns.Clear();
+                if (_CHARTDT_Tardy_Time != null)
+                    _CHARTDT_Tardy_Time.Columns.Clear();
+                if (_RT_CHARTDT_Output != null)
+                    _RT_CHARTDT_Output.Columns.Clear();
+                if (_RT_CHARTDT_Resource != null)
+                    _RT_CHARTDT_Resource.Columns.Clear();
+                if (_RT_CHARTDT_Setup != null)
+                    _RT_CHARTDT_Setup.Columns.Clear();
+
+                //수정필요
+
+                //GC_WF_SCHEDULE.SelectionMode = DataGridViewSelectionMode.CellSelect;
+
+                if (model1.InvokeRequired)
+                    model1.BeginInvoke(new Action(() => model1.Clear()));
+                else
+                    model1.Clear();
+
+                if (model1.InvokeRequired)
+                    model1.BeginInvoke(new Action(() => model1.Focus()));
+                else
+                    model1.Focus();
+
+                ClearEyeShot();
+                //_DT_ScheduleList = GeneralFunc.GetNewScheduleListDT();
+                //_DT_ScheduleList_Assigned = GeneralFunc.GetNewScheduleListDT();
+                //_DT_ScheduleTable = GeneralFunc.GetNewScheduleDT(50, Convert.ToInt32(_TotalMachineNum));
+
+                if (Grid_WF_SCHEDULELIST.InvokeRequired)
+                    Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.DataSource = _DT_ScheduleList));
+                else
+                    Grid_WF_SCHEDULELIST.DataSource = _DT_ScheduleList;
+
+                if (Grid_WF_SCHEDULELIST_ASSIGNED.InvokeRequired)
+                    Grid_WF_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST_ASSIGNED.DataSource = _DT_ScheduleList_Assigned));
+                else
+                    Grid_WF_SCHEDULELIST_ASSIGNED.DataSource = _DT_ScheduleList_Assigned;
+
+                if (GC_WF_SCHEDULE.InvokeRequired)
+                    GC_WF_SCHEDULE.BeginInvoke(new Action(() => GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable));
+                else
+                    GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable;
+
+                return true;
             }
-
-            CHART_TARDY.DataSource = null;
-            CHART_SETUP.DataSource = null;
-            CHART_RESOURCE.DataSource = null;
-            CHART_RT_SETUP.DataSource = null;
-            CHART_RT_OUTPUT.DataSource = null;
-            CHART_RT_RESOURCE.DataSource = null;
-
-            CHART_TARDY.Series.Clear();
-            CHART_SETUP.Series.Clear();
-            CHART_RESOURCE.Series.Clear();
-            CHART_RT_OUTPUT.Series.Clear();
-            CHART_RT_SETUP.Series.Clear();
-            CHART_RT_RESOURCE.Series.Clear();
-
-            if (_CHARTDT_Setup != null)
-                _CHARTDT_Setup.Clear();
-            if (_CHARTDT_Resource != null)
-                _CHARTDT_Resource.Clear();
-            if (_CHARTDT_Tardy_Time != null)
-                _CHARTDT_Tardy_Time.Clear();
-            if (_RT_CHARTDT_Output != null)
-                _RT_CHARTDT_Output.Clear();
-            if (_RT_CHARTDT_Resource != null)
-                _RT_CHARTDT_Resource.Clear();
-            if (_RT_CHARTDT_Setup != null)
-                _RT_CHARTDT_Setup.Clear();
-
-            if (_CHARTDT_Setup != null)
-                _CHARTDT_Setup.Columns.Clear();
-            if (_CHARTDT_Resource != null)
-                _CHARTDT_Resource.Columns.Clear();
-            if (_CHARTDT_Tardy_Time != null)
-                _CHARTDT_Tardy_Time.Columns.Clear();
-            if (_RT_CHARTDT_Output != null)
-                _RT_CHARTDT_Output.Columns.Clear();
-            if (_RT_CHARTDT_Resource != null)
-                _RT_CHARTDT_Resource.Columns.Clear();
-            if (_RT_CHARTDT_Setup != null)
-                _RT_CHARTDT_Setup.Columns.Clear();
-
-            //수정필요
-
-            //GC_WF_SCHEDULE.SelectionMode = DataGridViewSelectionMode.CellSelect;
-
-            if (model1.InvokeRequired)
-                model1.BeginInvoke(new Action(() => model1.Clear()));
-            else
-                model1.Clear();
-
-            if (model1.InvokeRequired)
-                model1.BeginInvoke(new Action(() => model1.Focus()));
-            else
-                model1.Focus();
-
-            ClearEyeShot();
-            //_DT_ScheduleList = GeneralFunc.GetNewScheduleListDT();
-            //_DT_ScheduleList_Assigned = GeneralFunc.GetNewScheduleListDT();
-            //_DT_ScheduleTable = GeneralFunc.GetNewScheduleDT(50, Convert.ToInt32(_TotalMachineNum));
-          
-            if (Grid_WF_SCHEDULELIST.InvokeRequired)
-                Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.DataSource = _DT_ScheduleList));
-            else
-                Grid_WF_SCHEDULELIST.DataSource = _DT_ScheduleList;
-
-            if (Grid_WF_SCHEDULELIST_ASSIGNED.InvokeRequired)
-                Grid_WF_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST_ASSIGNED.DataSource = _DT_ScheduleList_Assigned));
-            else
-                Grid_WF_SCHEDULELIST_ASSIGNED.DataSource = _DT_ScheduleList_Assigned;
-
-            if (GC_WF_SCHEDULE.InvokeRequired)
-                GC_WF_SCHEDULE.BeginInvoke(new Action(() => GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable));
-            else
-                GC_WF_SCHEDULE.DataSource = _DT_ScheduleTable;
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+                return false;
+            }
         }
 
         public void SetTimeLineAnimation()
         {
-            if(TimeLineAnimationThread == null){
+            if (_DT_ScheduleList == null)
+            {
                 return;
             }
             if (_isTimelineAnimating)
             {
-                //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.Enabled = true));
-                //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = true));
-                //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = true));
-                //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = true));
-                //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = true));
-                //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.BackgroundImage = Properties.Resources.다운로드__2_));
-
-                _isTimelineAnimating = false;
-                TimeLineAnimationThread.Abort();
+                
+                if(TimeLineAnimationThread != null){
+                    _isTimelineAnimating = false;
+                    TimeLineAnimationThread.Abort();
+                }
             }
             else
-            {
-                //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.Enabled = false));
-                //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = false));
-                //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = false));
-                //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = false));
-                //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = false));
-                //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.BackgroundImage = Properties.Resources.다운로드__5_));
-
+            {      
                 _isTimelineAnimating = true;
                 if (!bt_AimationOnOFF.Checked)
                 {
@@ -1644,15 +1941,7 @@ namespace PINOKIO_SCHEDULER
 
 
 
-                            //if (model1.InvokeRequired)
-                            //    model1.BeginInvoke(new Action(() => model1.Refresh()));
-                            //else
-                            //    model1.Refresh();
-
-                            //if (model1.InvokeRequired)
-                            //    model1.BeginInvoke(new Action(() => model1.Focus()));
-                            //else
-                            //    model1.Focus();
+                            
 
                             if (i <= endTime)
                                 UpdateRealTimeGraph(lststates);
@@ -1678,12 +1967,7 @@ namespace PINOKIO_SCHEDULER
         {
             if (_isScheduleAnimating)
             {
-                //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = true));
-                //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = true));
-                //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = true));
-                //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = true));
-                //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.Enabled = true));
-                //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.BackgroundImage = Properties.Resources.다운로드__2_));
+                
 
                 _isScheduleAnimating = false;
                 ScheduleStackAnimationThread.Abort();
@@ -1693,12 +1977,6 @@ namespace PINOKIO_SCHEDULER
                 if (_CurrentStep == _TotalJobNum)
                     return;
 
-                //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = false));
-                //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = false));
-                //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = false));
-                //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = false));
-                //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.Enabled = false));
-                //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.BackgroundImage = Properties.Resources.다운로드__5_));
 
                 _isScheduleAnimating = true;
                 ScheduleStackAnimationThread = new Thread(new ParameterizedThreadStart(Delegate_ScheduleAnimation));
@@ -1948,10 +2226,72 @@ namespace PINOKIO_SCHEDULER
             //this.model1.Refresh();
             //model1.Focus();
         }
+        public void InitializeEyeShotSingle()
+        {
+            
+                model1.BeginInvoke(new Action(() => SetTexture()));
+                model1.BeginInvoke(new Action(() => ImportMachine3DS()));
+            
+            this.model1.SetView(viewType.vcFrontFaceTop);
+            for (int i = 0; i < _TotalMachineNum; i++)
+            {
+                List<double> pos = new List<double>();
+                MachineNode bn = new MachineNode(i, pos);
+                DicMachine.Add(bn.Name, bn);
+            }
+            Set_Machine_Pos(Cal_Machine_Pos(_TotalMachineNum), DicMachine);
+            double width = DicMachine[DicMachine.ElementAt(DicMachine.Count - 1).Key].Position_box[0];
+            if (width == 0)
+                width = 15000;
+            model1.BeginInvoke(new Action(() => SetPlate(width)));
+            model1.BeginInvoke(new Action(() => CreateShapeMachine(DicMachine)));
+            model1.BeginInvoke(new Action(() => CreateBoxBlock()));
+            model1.BeginInvoke(new Action(() => CreateBlock_InJobBox()));
+            model1.BeginInvoke(new Action(() => SetJobList_Machine(_lstSchedule)));
+            model1.BeginInvoke(new Action(() => InputScheduleSingle()));
+
+            model1.BeginInvoke(new Action(() => model1.ZoomFit()));
+            model1.BeginInvoke(new Action(() => model1.Refresh()));
+            model1.BeginInvoke(new Action(() => model1.Focus()));
+
+
+            //model1.BeginInvoke(new Action(() => model1.SetView(viewType.vcFrontFaceTopRight)));
+            //model1.BeginInvoke(new Action(() => model1.OriginSymbol.Visible = false));
+            //model1.BeginInvoke(new Action(() => model1.Grid.Visible = false));
+
+            if (model1.InvokeRequired)
+                model1.BeginInvoke(new Action(() => model1.ZoomFit()));
+            else
+                model1.ZoomFit();
+
+            if (model1.InvokeRequired)
+                model1.BeginInvoke(new Action(() => model1.SetView(viewType.vcFrontFaceTopRight)));
+            else
+                model1.SetView(viewType.vcFrontFaceTopRight);
+
+            if (model1.InvokeRequired)
+                model1.BeginInvoke(new Action(() => model1.Refresh()));
+            else
+                model1.Refresh();
+
+            if (model1.InvokeRequired)
+                model1.BeginInvoke(new Action(() => model1.Focus()));
+            else
+                model1.Focus();
+
+            //this.model1.ZoomFit();
+            //this.model1.SetView(viewType.vcFrontFaceTopRight);
+            //this.model1.Refresh();
+            //model1.Focus();
+        }
         public void SetPlate(double wd)
         {
             Mesh plate = Createbolck.CreateBox(wd * 3, wd * 4.3, 1, "WhiteMetal", new Vector3D(-8000, -4000, -6));
-            model1.Entities.Add(plate);
+            if (!model1.Entities.Equals(plate))
+            {
+                model1.Entities.Add(plate);
+            }
+            
         }
         public void Set_Machine_Pos(List<int> ls, Dictionary<string, MachineNode> mc_dic)
         {
@@ -2539,58 +2879,7 @@ namespace PINOKIO_SCHEDULER
             if (e.CellValue.ToString().Substring(0, 1).Contains("Z"))
                 e.Appearance.BackColor = COLOR_1.Z_StringColor;
 
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("A"))
-            //    e.Appearance.BackColor = Color.Red;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("B"))
-            //    e.Appearance.BackColor = Color.Green;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("C"))
-            //    e.Appearance.BackColor = Color.DeepSkyBlue;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("D"))
-            //    e.Appearance.BackColor = Color.Yellow;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("E"))
-            //    e.Appearance.BackColor = Color.AliceBlue;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("F"))
-            //    e.Appearance.BackColor = Color.Aquamarine;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("G"))
-            //    e.Appearance.BackColor = Color.Beige;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("H"))
-            //    e.Appearance.BackColor = Color.BlanchedAlmond;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("I"))
-            //    e.Appearance.BackColor = Color.BlueViolet;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("J"))
-            //    e.Appearance.BackColor = Color.Chartreuse;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("K"))
-            //    e.Appearance.BackColor = Color.Chocolate;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("L"))
-            //    e.Appearance.BackColor = Color.Coral;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("M"))
-            //    e.Appearance.BackColor = Color.CornflowerBlue;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("N"))
-            //    e.Appearance.BackColor = Color.Cornsilk;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("O"))
-            //    e.Appearance.BackColor = Color.Crimson;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("P"))
-            //    e.Appearance.BackColor = Color.Cyan;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("Q"))
-            //    e.Appearance.BackColor = Color.DarkCyan;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("R"))
-            //    e.Appearance.BackColor = Color.DarkBlue;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("S") && GeneralFunc.IsNumeric(e.CellValue.ToString().Substring(0, 2)))
-            //    e.Appearance.BackColor = Color.DarkGoldenrod;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("T"))
-            //    e.Appearance.BackColor = Color.DarkSalmon;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("U"))
-            //    e.Appearance.BackColor = Color.DarkSeaGreen;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("V"))
-            //    e.Appearance.BackColor = Color.DarkSlateGray;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("W"))
-            //    e.Appearance.BackColor = Color.ForestGreen;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("X"))
-            //    e.Appearance.BackColor = Color.IndianRed;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("Y"))
-            //    e.Appearance.BackColor = Color.Orange;
-            //if (e.CellValue.ToString().Substring(0, 1).Contains("Z"))
-            //    e.Appearance.BackColor = Color.Navy;
+            
 
             if (e.CellValue.ToString().Contains("Set"))
             {
@@ -2675,43 +2964,7 @@ namespace PINOKIO_SCHEDULER
                 e.CellStyle.BackColor = COLOR_1.Z_StringColor;
         }
 
-        private void Grid_WF_SCHEDULE_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
-        {
-            //if (e.Value == null)
-            //    return;
-
-            //if (string.IsNullOrEmpty(e.Value.ToString()))
-            //    return;
-
-            //if (e.Value.ToString().Contains("Set"))
-            //{
-            //    using (Brush gridBrush = new SolidBrush(this.GC_WF_SCHEDULE.GridColor))
-            //    {
-            //        using (Brush backColorBrush = new SolidBrush(e.CellStyle.BackColor))
-            //        {
-            //            using (Pen gridLinePen = new Pen(gridBrush))
-            //            {
-            //                using (Pen pen = new Pen(Color.Black, 1))
-            //                {
-            //                    e.CellStyle.ForeColor = e.CellStyle.BackColor;
-            //                    // Clear cell 
-            //                    e.Graphics.FillRectangle(backColorBrush, e.CellBounds);
-            //                    //Bottom line drawing
-            //                    e.Graphics.DrawLine(gridLinePen, e.CellBounds.Left, e.CellBounds.Bottom - 1, e.CellBounds.Right, e.CellBounds.Bottom - 1);
-
-            //                    // here you force paint of content
-            //                    e.PaintContent(e.ClipBounds);
-            //                    e.Handled = true;
-
-            //                    e.Graphics.DrawLine(pen, new System.Drawing.Point(e.CellBounds.Left, e.CellBounds.Top), new System.Drawing.Point(e.CellBounds.Right, e.CellBounds.Bottom));
-            //                    e.Graphics.DrawLine(pen, new System.Drawing.Point(e.CellBounds.Right, e.CellBounds.Top), new System.Drawing.Point(e.CellBounds.Left, e.CellBounds.Bottom));
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //}
-        }
+        
         public TimeGrapgh GetModelStates_ByColumnIndex_For_TimeChart(int columnIndex)
         {
             TimeGrapgh lstTime;
@@ -2772,16 +3025,18 @@ namespace PINOKIO_SCHEDULER
               
                     if (string.IsNullOrEmpty(job))
                     {
-                        if (DicJobInfo.ContainsKey(listJob.Last()))
+                        if (listJob.Count > 0)
                         {
-                            if (DicJobInfo[listJob.Last()].EndTime + 1 == 0)
+                            if (DicJobInfo.ContainsKey(listJob.Last()))
                             {
-                                endCount++;
-                                endJob.Add(listJob.Last());
+                                if (DicJobInfo[listJob.Last()].EndTime + 1 == 0)
+                                {
+                                    endCount++;
+                                    endJob.Add(listJob.Last());
+                                }
+
                             }
-
                         }
-
                     }
 
 
@@ -2823,14 +3078,17 @@ namespace PINOKIO_SCHEDULER
                         }
                         else if (string.IsNullOrEmpty(job))
                         {
-                            if (DicJobInfo.ContainsKey(listJob.Last()))
+                            if (listJob.Count > 0)
                             {
-                                if (DicJobInfo[listJob.Last()].EndTime + 1 == j)
+                                if (DicJobInfo.ContainsKey(listJob.Last()))
                                 {
-                                    endCount++;
-                                    endJob.Add(listJob.Last());
-                                }
+                                    if (DicJobInfo[listJob.Last()].EndTime + 1 == j)
+                                    {
+                                        endCount++;
+                                        endJob.Add(listJob.Last());
+                                    }
 
+                                }
                             }
 
                         }
@@ -3026,6 +3284,7 @@ namespace PINOKIO_SCHEDULER
                 MachineShape boXShape = DicBoxSahpe[model.MachineNumber + 1];
                 //boXShape.UpdateJobColor(model.JobName.Last().Substring(0, 1));
                 boXShape.JobMesh.Visible = false;
+                if(model.JobName.Count > 0)
                 boXShape.UpdateJobColor(model.JobName.Last().Substring(0, 1));
                 boXShape.UpdateMachineState_1(box);
                 BlockReference br = model1.Entities.ToList().First(p => p.ToString().Contains("Referencing: " + box.Name)) as BlockReference;
@@ -3164,13 +3423,17 @@ namespace PINOKIO_SCHEDULER
 
         private void BTN_LOGIC_Click(object sender, EventArgs e)
         {
-
-            if(Problem_Value.Dic_JobType_Setting.Count ==0)
+            string SchedulingMent = " Rule로 스케쥴을 작성합니다";
+            if(comboBox1.SelectedItem.ToString() == "HASA")
+            {
+                SchedulingMent = SchedulingMent + "\n" + "HASA는 SetupTime, DueDate 값이 0이 아닐경우 제대로 돌아가지 않을수도 있습니다. ";
+            }
+            if (Problem_Value.Dic_JobType_Setting.Count ==0)
             {
                 MessageBox.Show("Problem List 작성이 필요합니다.");
                 return;
             }
-            if (MessageBox.Show(comboBox1.SelectedItem + " Rule로 스케쥴을 작성합니다", "New Schedule", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show(comboBox1.SelectedItem + SchedulingMent, "New Schedule", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
 
                 if (_DT_ScheduleList != null && _DT_ScheduleList.Rows.Count > 0)
@@ -3238,45 +3501,11 @@ namespace PINOKIO_SCHEDULER
         {
             SplashScreenManager.CloseForm();
         }
-        //public ToolTipControllerShowEventArgs CreateShowArgs(MachineNode node)
-        //{
-        //    //ToolTipControllerShowEventArgs args = tooltipcontroller1.CreateShowArgs();
 
-        //    //args.ToolTip = node.Name + "\r\n" + "총 작업 수 : " + node.WorkCount + "\r\n" + "총 작업 시간 : " + node.TotalworkTime + "\r\n" + "총 셋업 시간 : " + node.TotalsetupTime + "\r\n" + "총 유휴 시간 : " + node.TotalIdleTime;
-        //    //args.Title = "Machine informaion";
-        //    //args.IconType = ToolTipIconType.None;
-        //    //args.IconSize = ToolTipIconSize.Large;
-
-        //    //return args;
-
-
-        //}
         private void model1_MouseMove(object sender, MouseEventArgs e)
         {
 
-            //int index = this.model1.GetEntityUnderMouseCursor(e.Location);
-
-            //if (index > -1 && index < this.model1.Entities.Count)
-            //{
-            //    if (model1.Entities[index].ToString().Contains("M"))
-            //    {
-            //        string[] ddd = model1.Entities[index].ToString().Split('M');
-            //        if(DicMachine.ContainsKey("M" + ddd[1]))
-            //        {
-            //            MachineNode machineode = DicMachine["M" + ddd[1]];
-            //            ToolTipControllerShowEventArgs arg = CreateShowArgs(machineode);
-            //            tooltipcontroller1.ShowHint(arg, this.model1.PointToScreen(new System.Drawing.Point(e.X, e.Y)));
-            //        }
-
-            //        return;
-            //    }
-
-
-            //}
-            //else
-            //{
-            //    tooltipcontroller1.HideHint();
-            //}
+            
         }
 
         private void bt_JobLoad_Click(object sender, EventArgs e)
@@ -3338,14 +3567,7 @@ namespace PINOKIO_SCHEDULER
             _TotalJobNum = _DT_Job.Rows.Count;
 
 
-            //Grid_WF_JOB.BeginInvoke(new Action(() => Grid_WF_JOB.DataSource = _DT_Job));
-
-            //Grid_WF_SCHEDULE.BeginInvoke(new Action(() => Grid_WF_SCHEDULE.Refresh()));
-            //Grid_WF_SCHEDULELIST.BeginInvoke(new Action(() => Grid_WF_SCHEDULELIST.Refresh()));
-
-            //  GB_JOB.BeginInvoke(new Action(() => GB_JOB.Text = "Job List : " + _TotalJobNum));
-            //GB_SCHEDULELIST.BeginInvoke(new Action(() => GB_SCHEDULELIST.Text = "Schedule # Allocated Jobs :  " + _TotalJobNum));
-            //GB_SCHEDULELIST_ASSIGNED.BeginInvoke(new Action(() => GB_SCHEDULELIST_ASSIGNED.Text = "Assigned Schedule List : "));
+            
 
             // 잡 DT 생성	
             if (Grid_WF_JOB.InvokeRequired)
@@ -3471,6 +3693,38 @@ namespace PINOKIO_SCHEDULER
             this.model1.ZoomFit();
 
         }
+        public void InputScheduleSingle()
+        {
+            try
+            {
+                for (int i = _CurrentStep; i < _lstSchedule.Count; i++)
+                {
+                    _DT_ScheduleList_Assigned.Rows.Add(_lstSchedule[_CurrentStep].ID_LOT,
+                        _lstSchedule[_CurrentStep].ID_Machine,
+                        _lstSchedule[_CurrentStep].JobType,
+                        _lstSchedule[_CurrentStep].ProcessingTime,
+                        _lstSchedule[_CurrentStep].StartTime,
+                        _lstSchedule[_CurrentStep].EndTime,
+                        _lstSchedule[_CurrentStep].DueTime,
+                        _lstSchedule[_CurrentStep].Setup,
+                        _lstSchedule[_CurrentStep].Violation);
+
+                    Assign_Schedule(_CurrentStep, _lstSchedule);
+                    _CurrentStep++;
+                }
+                _dicGraphTime.Clear();
+                _dicGraphTime = GetGraphicModels_Time(_TotalWorkingTime);
+                SetGraphByStep(_CurrentStep - 1);
+                //SetInJob(DicJobCount_IN);
+                Set_InJobBox(DicJobCount_IN);
+                UpdateInJobLabel(DicJobCount_IN);
+                DicJobCount_IN_Clone = new Dictionary<string, int>(DicJobCount_IN);
+                this.model1.Refresh();
+                this.model1.ZoomFit();
+            }
+            catch(Exception ex) { Console.WriteLine(ex); }
+
+        }
 
         private void bbSimPlay_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
@@ -3563,20 +3817,7 @@ namespace PINOKIO_SCHEDULER
 
         private void bbOpenJobList_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            //if (_lstSchedule != null)
-            //{
-            //    if (MessageBox.Show("이전에 진행된 JOB LIST를 삭제하고 다시 로드합니다", "Clear", MessageBoxButtons.YesNo) == DialogResult.Yes)
-            //    {
-            //        ClearSchedules();
-            //    }
-            //    else
-            //    {
-            //        return;
-            //    }
-            //}
-
-            //if (_DT_Job != null)
-            //    ClearSchedules();
+            
             if (Problem_Value.Dic_JobType_Setting.Count() != 0)
             {
                 if (ReadJobList())
@@ -3599,37 +3840,7 @@ namespace PINOKIO_SCHEDULER
 
         private void bbExportSchedule_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-   
-            //SaveFileDialog fileDlg = new SaveFileDialog();
-            //fileDlg.Filter = "csv File (*.csv)|*.CSV|All files (*.*)|*.*";
-
-            //if (fileDlg.ShowDialog() == DialogResult.OK)
-            //{
-            //    CompositeLink composLink = new CompositeLink(new PrintingSystem());
-
-            //    PrintableComponentLink pcLink1 = new PrintableComponentLink();
-            //    PrintableComponentLink pcLink2 = new PrintableComponentLink();
-            //    PrintableComponentLink pcLink3 = new PrintableComponentLink();
-            //    Link linkMainReport = new Link();
-            //    linkMainReport.CreateDetailArea +=
-            //        new CreateAreaEventHandler(linkMainReport_CreateDetailArea);
-
-
-
-            //    pcLink2.Component = this.Grid_WF_SCHEDULELIST;
-            //    composLink.Links.Add(linkMainReport);
-            //    CsvExportOptionsEx option = new CsvExportOptionsEx();
-
-            //    option.ExportType = ExportType.WYSIWYG;
-
-            //    option.TextExportMode = TextExportMode.Value;
-            //    composLink.Links.Add(pcLink2);
-            //    composLink.ExportToCsv(fileDlg.FileName, option);
-
-            //    // Grid_WF_SCHEDULELIST.ExportToCsv(fileDlg.FileName);
-
-            //}
-
+ 
             if (gridView2.RowCount == 0)
             {
                 MessageBox.Show("Schedule이 비어있습니다.");
@@ -3710,48 +3921,13 @@ namespace PINOKIO_SCHEDULER
 
         private void CHART_TARDY_Click(object sender, EventArgs e)
         {
-            //SelectChartForm Open = new SelectChartForm();
-
-            //Form fc = Application.OpenForms["SelectChartForm"];
-            //Open.Main = this;
-
-            //if(fc != null)
-            //{
-            //    Open.SelectChart.DataSource = null;
-            //    Open.SelectChart.Series.Clear();
-            //    Open.load_SelectChart("TARDY");
-            //    Open.SelectChart.RefreshData();
-            //}
-            //else
-            //{
-            //    Open.load_SelectChart("TARDY");
-
-            //    Open.Show();
-            //}
-
+            
            
         }
 
         private void CHART_SETUP_Click(object sender, EventArgs e)
         {
-            //SelectChartForm Open = new SelectChartForm();
-
-            //Form fc = Application.OpenForms["SelectChartForm"];
-            //Open.Main = this;
-
-            //if (fc != null)
-            //{
-            //    Open.SelectChart.DataSource = null;
-            //    Open.SelectChart.Series.Clear();
-            //    Open.load_SelectChart("SETUP");
-            //    Open.SelectChart.RefreshData();
-            //}
-            //else
-            //{
-            //    Open.load_SelectChart("SETUP");
-            //    Open.Show();
-
-            //}
+            
 
 
         
@@ -3759,24 +3935,6 @@ namespace PINOKIO_SCHEDULER
 
         private void CHART_RESOURCE_Click(object sender, EventArgs e)
         {
-            //SelectChartForm Open = new SelectChartForm();
-
-            //Form fc = Application.OpenForms["SelectChartForm"];
-            //Open.Main = this;
-
-            //if (fc != null)
-            //{
-            //    Open.SelectChart.DataSource = null;
-            //    Open.SelectChart.Series.Clear();
-            //    Open.load_SelectChart("RESOURCE");
-            //    Open.SelectChart.RefreshData();
-            //}
-            //else
-            //{
-            //    Open.load_SelectChart("RESOURCE");
-            //    Open.Show();
-
-            //}
 
         }
 
@@ -3902,11 +4060,7 @@ namespace PINOKIO_SCHEDULER
         {
             if (e.Button == MouseButtons.Right)
             {
-                //Grid_WF_SCHEDULE.ClearSelection();
-                //gridView2.ClearSelection();
-                //gridView2.RefreshData();
-                //Grid_WF_SCHEDULE.RefreshData();
-                //selectcell = false;
+               
 
             }
             else
@@ -3943,138 +4097,7 @@ namespace PINOKIO_SCHEDULER
             }
             else
             {
-                //if(merge.Keys.Count > 0)
-                //{
-                //    if (merge.Values.ElementAt(merge.Keys.Count - 1) != e.CellValue.ToString())
-                //    {
-                //        Brush backColorBrush = new SolidBrush(GeneralFunc.SetColor(merge.Values.ElementAt(merge.Keys.Count - 1)));
-
-                //        Rectangle rt = DrawMerge(merge);
-                //        e.Graphics.FillRectangle(backColorBrush, rt);
-
-
-                //        merge.Clear();
-                //        merge.Add(e.Bounds, e.CellValue.ToString());
-                //    }
-                //    else
-                //    {
-                //        merge.Add(e.Bounds, e.CellValue.ToString());
-                //    }
-
-                //}
-                //else
-                //{
-                //    merge.Add(e.Bounds, e.CellValue.ToString());
-                //}
-
-
-
-
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("A"))
-                //    e.Appearance.BackColor = COLOR_1.A_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("B"))
-                //    e.Appearance.BackColor = COLOR_1.B_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("C"))
-                //    e.Appearance.BackColor = COLOR_1.C_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("D"))
-                //    e.Appearance.BackColor = COLOR_1.D_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("E"))
-                //    e.Appearance.BackColor = COLOR_1.E_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("F"))
-                //    e.Appearance.BackColor = COLOR_1.F_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("G"))
-                //    e.Appearance.BackColor = COLOR_1.G_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("H"))
-                //    e.Appearance.BackColor = COLOR_1.H_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("I"))
-                //    e.Appearance.BackColor = COLOR_1.I_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("J"))
-                //    e.Appearance.BackColor = COLOR_1.J_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("K"))
-                //    e.Appearance.BackColor = COLOR_1.K_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("L"))
-                //    e.Appearance.BackColor = COLOR_1.L_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("M"))
-                //    e.Appearance.BackColor = COLOR_1.M_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("N"))
-                //    e.Appearance.BackColor = COLOR_1.N_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("O"))
-                //    e.Appearance.BackColor = COLOR_1.O_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("P"))
-                //    e.Appearance.BackColor = COLOR_1.P_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Q"))
-                //    e.Appearance.BackColor = COLOR_1.Q_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("R"))
-                //    e.Appearance.BackColor = COLOR_1.R_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("S") && GeneralFunc.IsNumeric(e.CellValue.ToString().Substring(0, 2)))
-                //    e.Appearance.BackColor = COLOR_1.S_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("T"))
-                //    e.Appearance.BackColor = COLOR_1.T_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("U"))
-                //    e.Appearance.BackColor = COLOR_1.U_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("V"))
-                //    e.Appearance.BackColor = COLOR_1.V_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("W"))
-                //    e.Appearance.BackColor = COLOR_1.W_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("X"))
-                //    e.Appearance.BackColor = COLOR_1.X_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Y"))
-                //    e.Appearance.BackColor = COLOR_1.Y_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Z"))
-                //    e.Appearance.BackColor = COLOR_1.Z_StringColor;
-
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("A"))
-                //    e.Appearance.BackColor2 = COLOR_1.A_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("B"))
-                //    e.Appearance.BackColor2 = COLOR_1.B_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("C"))
-                //    e.Appearance.BackColor2 = COLOR_1.C_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("D"))
-                //    e.Appearance.BackColor2 = COLOR_1.D_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("E"))
-                //    e.Appearance.BackColor2 = COLOR_1.E_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("F"))
-                //    e.Appearance.BackColor2 = COLOR_1.F_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("G"))
-                //    e.Appearance.BackColor2 = COLOR_1.G_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("H"))
-                //    e.Appearance.BackColor2 = COLOR_1.H_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("I"))
-                //    e.Appearance.BackColor2 = COLOR_1.I_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("J"))
-                //    e.Appearance.BackColor2 = COLOR_1.J_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("K"))
-                //    e.Appearance.BackColor2 = COLOR_1.K_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("L"))
-                //    e.Appearance.BackColor2 = COLOR_1.L_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("M"))
-                //    e.Appearance.BackColor2 = COLOR_1.M_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("N"))
-                //    e.Appearance.BackColor2 = COLOR_1.N_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("O"))
-                //    e.Appearance.BackColor2 = COLOR_1.O_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("P"))
-                //    e.Appearance.BackColor2 = COLOR_1.P_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Q"))
-                //    e.Appearance.BackColor2 = COLOR_1.Q_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("R"))
-                //    e.Appearance.BackColor2 = COLOR_1.R_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("S") && GeneralFunc.IsNumeric(e.CellValue.ToString().Substring(0, 2)))
-                //    e.Appearance.BackColor2 = COLOR_1.S_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("T"))
-                //    e.Appearance.BackColor2 = COLOR_1.T_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("U"))
-                //    e.Appearance.BackColor2 = COLOR_1.U_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("V"))
-                //    e.Appearance.BackColor2 = COLOR_1.V_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("W"))
-                //    e.Appearance.BackColor2 = COLOR_1.W_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("X"))
-                //    e.Appearance.BackColor2 = COLOR_1.X_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Y"))
-                //    e.Appearance.BackColor2 = COLOR_1.Y_StringColor;
-                //if (e.CellValue.ToString().Substring(0, 1).Contains("Z"))
-                //    e.Appearance.BackColor2 = COLOR_1.Z_StringColor;
+               
             }
 
         }
@@ -4099,12 +4122,6 @@ namespace PINOKIO_SCHEDULER
             {
                 if (TimeLineAnimationThread != null && _isTimelineAnimating)
                 {
-                    //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.Enabled = true));
-                    //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = true));
-                    //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = true));
-                    //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = true));
-                    //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = true));
-                    //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.BackgroundImage = Properties.Resources.다운로드__2_));
 
                     _isTimelineAnimating = false;
                     GC_WF_SCHEDULE.BeginInvoke(new Action(() => Grid_WF_SCHEDULE.ClearSelection()));
@@ -4113,12 +4130,7 @@ namespace PINOKIO_SCHEDULER
 
                 if (ScheduleStackAnimationThread != null && _isScheduleAnimating)
                 {
-                    //BTN_MOVE_BACK.BeginInvoke(new Action(() => BTN_MOVE_BACK.Enabled = true));
-                    //BTN_MOVE_FIRST.BeginInvoke(new Action(() => BTN_MOVE_FIRST.Enabled = true));
-                    //BTN_MOVE_FORWARD.BeginInvoke(new Action(() => BTN_MOVE_FORWARD.Enabled = true));
-                    //BTN_MOVE_LAST.BeginInvoke(new Action(() => BTN_MOVE_LAST.Enabled = true));
-                    //BTN_TIMELINE_MOVE.BeginInvoke(new Action(() => BTN_TIMELINE_MOVE.Enabled = true));
-                    //BTN_MOVE.BeginInvoke(new Action(() => BTN_MOVE.BackgroundImage = Properties.Resources.다운로드__2_));
+                   
 
                     _isScheduleAnimating = false;
                     GC_WF_SCHEDULE.BeginInvoke(new Action(() => Grid_WF_SCHEDULE.ClearSelection()));

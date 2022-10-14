@@ -198,13 +198,13 @@ namespace PINOKIO_SCHEDULER.GeneralFunctions
                     dt.Rows.Add(Convert.ToInt32(Lines[0]), Convert.ToInt32(Lines[1]), Lines[2], Convert.ToInt32(Lines[3]),
                         Convert.ToInt32(Lines[4]), Convert.ToInt32(Lines[5]), Convert.ToInt32(Lines[6]), Convert.ToInt32(Lines[7]), Convert.ToInt32(Lines[8]));
 
-                    if (!machineNo.Contains(Convert.ToInt32(Lines[1])))
-                        machineNo.Add(Convert.ToInt32(Lines[1]));
+                  //  if (!machineNo.Contains(Convert.ToInt32(Lines[1])))
+                  //      machineNo.Add(Convert.ToInt32(Lines[1]));
 
 
 
                 }
-                MachineNumber = machineNo.Count();
+              //  MachineNumber = machineNo.Count();
                 return lstSM;
             }
             catch

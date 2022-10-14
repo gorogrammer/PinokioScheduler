@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using PINOKIO_SCHEDULER.GeneralFunctions;
 
 namespace PINOKIO_SCHEDULER.SubView
 {
@@ -124,13 +125,13 @@ namespace PINOKIO_SCHEDULER.SubView
                     string typeName = jobtypeList[i];
                     sdsd.Add(typeName);
 
-                    int Quantity_Mix = MinQuant(Problem_Value.Dic_JobType_Setting[typeName].ProcessTime_Machine);
-                    int qunt = Normal_Random(i, qunt_Avg, qunt_Var);
+                    int Quantity_Mix = Maths.MinQuant(Problem_Value.Dic_JobType_Setting[typeName].ProcessTime_Machine);
+                    int qunt = Maths.Normal_Random(i, qunt_Avg, qunt_Var);
                     int RandomDueMin = qunt * Quantity_Mix;
 
-                    int MaxJobProsTime = MaxQuant(Problem_Value.Dic_JobType_Setting[typeName].ProcessTime_Machine);
+                    int MaxJobProsTime = Maths.MaxQuant(Problem_Value.Dic_JobType_Setting[typeName].ProcessTime_Machine);
                     int duedateA = dueRand_Max / RandomDueMin;
-                    int RanDue = Convert.ToInt32(RandomDue(i, dueRand_Max, tightness, RandomDueMin, MaxJobProsTime, duedateA));
+                    int RanDue = Convert.ToInt32(Maths.RandomDue(i, dueRand_Max, tightness, RandomDueMin, MaxJobProsTime, duedateA));
                     DT_MakeJob_Wegiht.Rows.Add(i, typeName, qunt, RanDue);
                     duedatelist.Add(RanDue);
                 }
@@ -143,84 +144,18 @@ namespace PINOKIO_SCHEDULER.SubView
             }
 
         }
-
-
-        private int MaxQuant(Dictionary<int, int> dic)
-        {
-            int max = 0;
-            foreach (KeyValuePair<int, int> pair in dic)
-            {
-                if (max < pair.Value)
-                    max = pair.Value;
-            }
-
-            return max;
-        }
-
-        private int MinQuant(Dictionary<int, int> dic)
-        {
-            int max = 0;
-            foreach (KeyValuePair<int, int> pair in dic)
-            {
-                if (max < pair.Value)
-                    max = pair.Value;
-            }
-
-            return max;
-        }
+        
         private int MaxA(Dictionary<string, Job_Setting_Value> dic, List<string> listjobtype)
         {
             int max = 0;
             for (int i = 0; i < listjobtype.Count; i++)
             {
-                max += MaxQuant(Problem_Value.Dic_JobType_Setting[listjobtype[i]].ProcessTime_Machine);
+                max += Maths.MaxQuant(Problem_Value.Dic_JobType_Setting[listjobtype[i]].ProcessTime_Machine);
             }
 
 
             return max;
-        }
-        private int RandomQuant(int no)
-        {
-            int max = 0;
-
-            Random sd = new Random(DateTime.Now.Millisecond);
-            max = sd.Next(1, no);
-
-            return Convert.ToInt32(max);
-        }
-
-        private double RandomDue(int seed, int max, double tight, int min, int maxProcess, int A)
-        {
-            Random sds = new Random();
-            sds.Next(1, 3000);
-            double value = 0;
-            Random sd = new Random((Guid.NewGuid().GetHashCode() * sds.Next() * (int)DateTime.Now.Millisecond + seed) % (seed + sds.Next()));
-            value = Convert.ToInt32(sd.Next(0, A)) * tight;
-
-            return value + min;
-        }
-        private int Normal_Random(int seed, double mean, double std)
-        {
-            Random sd = new Random();
-            sd.Next(1, 3000);
-
-            Random rand = new Random((Guid.NewGuid().GetHashCode() * sd.Next() * (int)DateTime.Now.Millisecond + seed) % (seed + sd.Next())); //reuse this if you are generating many
-            double u1 = 1.0 - rand.NextDouble(); //uniform(0,1] random doubles
-            double u2 = 1.0 - rand.NextDouble();
-
-            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
-                         Math.Sin(2.0 * Math.PI * u2); //random normal(0,1)
-
-            if (randStdNormal < 0)
-                randStdNormal = randStdNormal * -1;
-
-            double randNormal =
-                         mean + std * randStdNormal; //random normal(mean,stdDev^2)
-
-
-            return Convert.ToInt32(randNormal);
-        }
-
+        }        
         private string GetRandom(Dictionary<string, double> dic, int i)
         {
             Random sd = new Random();
