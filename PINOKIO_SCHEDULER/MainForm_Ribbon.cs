@@ -1174,10 +1174,11 @@ namespace PINOKIO_SCHEDULER
             Dictionary<int, TimeGrapgh> dic_time = new Dictionary<int, TimeGrapgh>();
 
             int accum = 0;
-
+            int cellAccum = 0;
+            List<string> CheckViolation = new List<string>();
             for (int x = 0; x < time; x++)
             {
-                dic_time.Add(x,GetModelStates_ByColumnIndex_For_TimeChart(x));
+                dic_time.Add(x,GetModelStates_ByColumnIndex_For_TimeChart(x,CheckViolation));
                
             }
 
@@ -2965,10 +2966,11 @@ namespace PINOKIO_SCHEDULER
         }
 
         
-        public TimeGrapgh GetModelStates_ByColumnIndex_For_TimeChart(int columnIndex)
+        public TimeGrapgh GetModelStates_ByColumnIndex_For_TimeChart(int columnIndex,List<string> Check)
         {
             TimeGrapgh lstTime;
             int tardySum = 0;
+            int tardyAccum = 0;
             int tardyCount = 0;
             int setupSum = 0;
             for (int i = 0; i < Grid_WF_SCHEDULE.RowCount; i++)
@@ -2976,11 +2978,16 @@ namespace PINOKIO_SCHEDULER
                 var cellValue = Grid_WF_SCHEDULE.GetRowCellValue(i, columnIndex.ToString());
                 //string job = Grid_WF_SCHEDULE[j, i].Value.ToString();
                 string job = cellValue.ToString();
-
+               
                 if (DicJobInfo.ContainsKey(job) && DicJobInfo[job].Violation != 0)
                 {
-                    tardySum += DicJobInfo[job].Violation;
-
+                    if (!Check.Contains(job))
+                    {
+                        tardySum += DicJobInfo[job].Violation;
+                        Check.Add(job);
+                    }
+                   // tardyAccum += DicJobInfo[job].Violation;
+                   
                     tardyCount++;
                 }
 

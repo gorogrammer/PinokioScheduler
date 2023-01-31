@@ -1,6 +1,8 @@
 ﻿using DevExpress.Export;
 using DevExpress.Utils;
+using DevExpress.Utils.Drawing;
 using DevExpress.XtraCharts;
+using DevExpress.XtraGrid;
 using DevExpress.XtraPrinting;
 using DevExpress.XtraPrintingLinks;
 using PINOKIO_SCHEDULER.Definitions;
@@ -12,6 +14,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -78,13 +81,13 @@ namespace PINOKIO_SCHEDULER.SubView
         private void MakeTardySumChart()
         {
             Series TardySeries = new Series(DEF.GRAPH_TARDY, ViewType.StackedLine);
-            Series TardySumSeries = new Series("Tardiness Accum", ViewType.StackedLine);
+            Series TardySumSeries = new Series("Tardiness Sum", ViewType.StackedLine);
             Chart_Report_TardySum.Series.Add(TardySeries);
             Chart_Report_TardySum.Series.Add(TardySumSeries);
             DataTable _seltDT_Sum = new DataTable();
             _seltDT_Sum.Columns.Add("Time", typeof(Int32));
             _seltDT_Sum.Columns.Add("Value", typeof(Int32));
-            _seltDT_Sum.Columns.Add("Accum", typeof(Int32));
+            _seltDT_Sum.Columns.Add("Sum", typeof(Int32));
             XYDiagram diagram = Chart_Report_TardySum.Diagram as XYDiagram;
             ((XYDiagram)Chart_Report_TardySum.Diagram).SecondaryAxesY.Clear();
             SecondaryAxisY secondAxisY = new SecondaryAxisY();
@@ -112,7 +115,7 @@ namespace PINOKIO_SCHEDULER.SubView
             }
 
             Chart_Report_TardySum.Series[0].ValueDataMembers.AddRange(new string[] { "Value" });
-            Chart_Report_TardySum.Series[1].ValueDataMembers.AddRange(new string[] { "Accum" });
+            Chart_Report_TardySum.Series[1].ValueDataMembers.AddRange(new string[] { "Sum" });
 
 
             ((XYDiagram)Chart_Report_TardySum.Diagram).AxisX.Title.Text = "Time";
@@ -248,6 +251,7 @@ namespace PINOKIO_SCHEDULER.SubView
             }
             Grid_Report_Machine.DataSource = dt_Machine;
             gridView2.BestFitColumns();
+            
         }
 
         private void MakeProblemGrid()
@@ -563,6 +567,28 @@ namespace PINOKIO_SCHEDULER.SubView
             tb.BackColor = Color.Transparent;
             tb.HorzAlignment = DevExpress.Utils.HorzAlignment.Near;
             e.Graph.DrawBrick(tb);
+        }
+
+        private void gridView2_DataSourceChanged(object sender, EventArgs e)
+        {
+            int sum = 0;
+            DataTable table = Grid_Report_Machine.DataSource as DataTable;
+            //this.gridView2.OptionsBehavior.AutoPopulateColumns = true;
+
+            this.gridView2.OptionsView.ShowFooter = true;
+            gridView2.UpdateSummary();
+            Grid_Report_Machine.DataSource = table;
+            GridColumnSummaryItem item1 = new GridColumnSummaryItem(DevExpress.Data.SummaryItemType.Sum, "Total Violation Time", "Sum={0}");
+            
+            this.gridView2.Columns["Total Violation Time"].Summary.Add(item1);
+            
+            //Footer의 두번째 셀에 합계가 들어있는 sum의 값을 넣습니다.
+            // GridView1.FooterRow.Cells[1].Text = sum.ToString();
+        }
+
+        private void gridView2_CustomDrawFooterCell(object sender, DevExpress.XtraGrid.Views.Grid.FooterCellCustomDrawEventArgs e)
+        {
+           
         }
     }
 }

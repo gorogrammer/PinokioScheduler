@@ -29,7 +29,7 @@ namespace PINOKIO_SCHEDULER.SubView
         /// </summary>
         private void InitializeComponent()
         {
-            DevExpress.XtraCharts.ChartTitle chartTitle1 = new DevExpress.XtraCharts.ChartTitle();
+            DevExpress.XtraCharts.ChartTitle chartTitle5 = new DevExpress.XtraCharts.ChartTitle();
             this.layoutControl1 = new DevExpress.XtraLayout.LayoutControl();
             this.Grid_Problem = new DevExpress.XtraGrid.GridControl();
             this.gridView3 = new DevExpress.XtraGrid.Views.Grid.GridView();
@@ -161,10 +161,10 @@ namespace PINOKIO_SCHEDULER.SubView
             this.Chart_Report_TardySum.SeriesSerializable = new DevExpress.XtraCharts.Series[0];
             this.Chart_Report_TardySum.Size = new System.Drawing.Size(643, 270);
             this.Chart_Report_TardySum.TabIndex = 14;
-            chartTitle1.Text = "Tardiness Sum";
-            chartTitle1.Visibility = DevExpress.Utils.DefaultBoolean.False;
+            chartTitle5.Text = "Tardiness Sum";
+            chartTitle5.Visibility = DevExpress.Utils.DefaultBoolean.False;
             this.Chart_Report_TardySum.Titles.AddRange(new DevExpress.XtraCharts.ChartTitle[] {
-            chartTitle1});
+            chartTitle5});
             // 
             // Grid_Report_Machine
             // 
@@ -183,8 +183,13 @@ namespace PINOKIO_SCHEDULER.SubView
             this.gridView2.Appearance.Row.TextOptions.VAlignment = DevExpress.Utils.VertAlignment.Center;
             this.gridView2.GridControl = this.Grid_Report_Machine;
             this.gridView2.Name = "gridView2";
+            this.gridView2.OptionsMenu.EnableFooterMenu = false;
+            this.gridView2.OptionsMenu.ShowSummaryItemMode = DevExpress.Utils.DefaultBoolean.True;
+            this.gridView2.OptionsView.ShowFooter = true;
             this.gridView2.OptionsView.ShowGroupPanel = false;
             this.gridView2.OptionsView.ShowIndicator = false;
+            this.gridView2.CustomDrawFooterCell += new DevExpress.XtraGrid.Views.Grid.FooterCellCustomDrawEventHandler(this.gridView2_CustomDrawFooterCell);
+            this.gridView2.DataSourceChanged += new System.EventHandler(this.gridView2_DataSourceChanged);
             // 
             // chart_Report_SetUp
             // 

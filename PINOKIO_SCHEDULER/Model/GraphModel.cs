@@ -19,10 +19,9 @@ namespace PINOKIO_SCHEDULER.Model
         public int TimeIndex { get; set; }
         public int TardySum { get; set; }
         public int SetUpSum { get; set; }
-
         public int TardyCount { get; set; }
 
-        public TimeGrapgh(int time, int tardysum, int tardycount, int setupSum )
+        public TimeGrapgh(int time, int tardysum, int tardycount, int setupSum)
         {
             TimeIndex = time;
             TardySum = tardysum;
