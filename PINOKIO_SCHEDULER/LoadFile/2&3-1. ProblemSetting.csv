@@ -1,0 +1,8 @@
+﻿Number of Machines, 5
+Number of Jobs, 5
+Job Type,Machine Arr,Processing Time,Setup Time
+A,0/1/2/3/4,1/1/1/1/1,2
+B,0/1/2/3/4,1/1/1/1/1,2
+C,0/1/2/3/4,1/1/1/1/1,2
+D,0/1/2/3/4,1/1/1/1/1,2
+E,0/1/2/3/4,1/1/1/1/1,2

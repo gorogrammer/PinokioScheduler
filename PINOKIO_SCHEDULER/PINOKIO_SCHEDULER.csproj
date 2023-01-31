@@ -257,6 +257,7 @@
     </EmbeddedResource>
     <None Include="bin\Debug\chair.mtl" />
     <None Include="bin\Debug\chair.obj" />
+    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
